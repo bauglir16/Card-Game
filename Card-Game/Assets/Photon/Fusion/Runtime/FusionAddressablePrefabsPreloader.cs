@@ -1,13 +1,14 @@
-﻿namespace Fusion {
-  using System.Collections.Generic;
-  using UnityEngine;
+﻿namespace Fusion
+{
+	using UnityEngine;
 
 #if FUSION_ENABLE_ADDRESSABLES && !FUSION_DISABLE_ADDRESSABLES
   using UnityEngine.AddressableAssets;
   using UnityEngine.ResourceManagement.AsyncOperations;
 #endif
 
-  public class FusionAddressablePrefabsPreloader : MonoBehaviour {
+	public class FusionAddressablePrefabsPreloader : MonoBehaviour
+	{
 #if FUSION_ENABLE_ADDRESSABLES && !FUSION_DISABLE_ADDRESSABLES
     private List<AsyncOperationHandle<GameObject>> _handles = new List<AsyncOperationHandle<GameObject>>();
 
@@ -37,5 +38,5 @@
       }
     }
 #endif
-  }
+	}
 }

@@ -1,139 +1,160 @@
-﻿namespace Fusion.Statistics {
-using UnityEngine;
-using System.Collections.Generic;
-using UnityEngine.UI;
-using System;
+﻿namespace Fusion.Statistics
+{
+	using System;
+	using System.Collections.Generic;
+	using UnityEngine;
+	using UnityEngine.UI;
 
-  public class FusionNetworkObjectStatsGraphCombine : MonoBehaviour {
-    
-    [SerializeField] private Text _titleText;
-    [SerializeField] private Dropdown _statDropdown;
-    [SerializeField] private NetworkObjectStat _statsToRender;
-    [SerializeField] private RectTransform _rect;
-    [SerializeField] private RectTransform _combinedGraphRender;
-    [SerializeField] private Button _toggleButton;
+	public class FusionNetworkObjectStatsGraphCombine : MonoBehaviour
+	{
 
-    private float _headerHeight = 50;
-    private float _graphHeight = 150;
+		[SerializeField] private Text _titleText;
+		[SerializeField] private Dropdown _statDropdown;
+		[SerializeField] private NetworkObjectStat _statsToRender;
+		[SerializeField] private RectTransform _rect;
+		[SerializeField] private RectTransform _combinedGraphRender;
+		[SerializeField] private Button _toggleButton;
 
-    private Dictionary<NetworkObjectStat, FusionNetworkObjectStatsGraph> _statsGraphs;
-    [SerializeField]
-    private FusionNetworkObjectStatsGraph _statsGraphPrefab;
+		private float _headerHeight = 50;
+		private float _graphHeight = 150;
 
-    private ContentSizeFitter _parentContentSizeFitter;
+		private Dictionary<NetworkObjectStat, FusionNetworkObjectStatsGraph> _statsGraphs;
+		[SerializeField]
+		private FusionNetworkObjectStatsGraph _statsGraphPrefab;
 
-    /// <summary>
-    /// Gets the unique identifier of the network object.
-    /// </summary>
-    /// <value>
-    /// The network object identifier.
-    /// </value>
-    public NetworkId NetworkObjectID => _networkObject.Id;
+		private ContentSizeFitter _parentContentSizeFitter;
 
-    private NetworkObject _networkObject;
-    private FusionStatistics _fusionStatistics;
-    private FusionNetworkObjectStatistics _objectStatisticsInstance;
+		/// <summary>
+		/// Gets the unique identifier of the network object.
+		/// </summary>
+		/// <value>
+		/// The network object identifier.
+		/// </value>
+		public NetworkId NetworkObjectID => _networkObject.Id;
 
-    public void SetupNetworkObject(NetworkObject networkObject, FusionStatistics fusionStatistics, FusionNetworkObjectStatistics objectStatisticsInstance) {
-      _networkObject = networkObject;
-      _fusionStatistics = fusionStatistics;
-      _objectStatisticsInstance = objectStatisticsInstance;
-    }
+		private NetworkObject _networkObject;
+		private FusionStatistics _fusionStatistics;
+		private FusionNetworkObjectStatistics _objectStatisticsInstance;
 
-    private void Start() {
-      _statsGraphs = new Dictionary<NetworkObjectStat, FusionNetworkObjectStatsGraph>();
-      _parentContentSizeFitter = GetComponentInParent<ContentSizeFitter>();
-      
-      List<Dropdown.OptionData> options = new List<Dropdown.OptionData>();
+		public void SetupNetworkObject(NetworkObject networkObject, FusionStatistics fusionStatistics, FusionNetworkObjectStatistics objectStatisticsInstance)
+		{
+			_networkObject = networkObject;
+			_fusionStatistics = fusionStatistics;
+			_objectStatisticsInstance = objectStatisticsInstance;
+		}
 
-      options.Add(new Dropdown.OptionData("Toggle Stats"));
+		private void Start()
+		{
+			_statsGraphs = new Dictionary<NetworkObjectStat, FusionNetworkObjectStatsGraph>();
+			_parentContentSizeFitter = GetComponentInParent<ContentSizeFitter>();
 
-      foreach (var option in Enum.GetNames(typeof(NetworkObjectStat))) {
-        options.Add(new Dropdown.OptionData(option));
-      }
+			List<Dropdown.OptionData> options = new List<Dropdown.OptionData>();
 
-      _statDropdown.options = options;
+			options.Add(new Dropdown.OptionData("Toggle Stats"));
 
-      _statDropdown.onValueChanged.AddListener(OnDropDownChanged);
-      
-      UpdateHeight();
+			foreach (var option in Enum.GetNames(typeof(NetworkObjectStat)))
+			{
+				options.Add(new Dropdown.OptionData(option));
+			}
 
-      _titleText.text = _networkObject.Name;
-    }
+			_statDropdown.options = options;
 
-    private void OnDropDownChanged(int arg0) {
-      if (arg0 <= 0) return; // No stat selected.
-      arg0--; // Remove the first label
+			_statDropdown.onValueChanged.AddListener(OnDropDownChanged);
 
-      NetworkObjectStat stat = (NetworkObjectStat)(1 << arg0);
+			UpdateHeight();
 
-      if ((_statsToRender & stat) == stat) {
-        _statsToRender &= ~stat; // Removed the flag
-        DestroyStatGraph(stat);
-      } else {
-        _statsToRender |= stat; // Set the flag
-        InstantiateStatGraph(stat);
-      }
-      
-      UpdateHeight();
+			_titleText.text = _networkObject.Name;
+		}
 
-      // Set the first label again.
-      _statDropdown.SetValueWithoutNotify(0);
-    }
+		private void OnDropDownChanged(int arg0)
+		{
+			if (arg0 <= 0) return; // No stat selected.
+			arg0--; // Remove the first label
 
-    private void InstantiateStatGraph(NetworkObjectStat stat) {
-      FusionNetworkObjectStatsGraph graph = Instantiate(_statsGraphPrefab, _combinedGraphRender);
-      graph.SetupNetworkObjectStat(NetworkObjectID, stat);
-      _statsGraphs.Add(stat, graph);
-    }
+			NetworkObjectStat stat = (NetworkObjectStat)(1 << arg0);
 
-    private void DestroyStatGraph(NetworkObjectStat stat) {
-      _statsGraphs[stat].gameObject.SetActive(false);
-      Destroy(_statsGraphs[stat].gameObject);
-      _statsGraphs.Remove(stat);
-    }
-    
-    private void UpdateHeight(float overrideValue = -1) {
-      var sizeDelta = _rect.sizeDelta;
-      var height = overrideValue >= 0 ? overrideValue : _headerHeight + _statsGraphs.Count * _graphHeight;
-      _rect.sizeDelta = new Vector2(sizeDelta.x,height);
-      
-      // Need to refresh vertical scroll
-      _parentContentSizeFitter.enabled = false;
-      _parentContentSizeFitter.enabled = true;
-    }
+			if ((_statsToRender & stat) == stat)
+			{
+				_statsToRender &= ~stat; // Removed the flag
+				DestroyStatGraph(stat);
+			}
+			else
+			{
+				_statsToRender |= stat; // Set the flag
+				InstantiateStatGraph(stat);
+			}
 
-    private void OnDisable() {
-      if (_statsGraphs == null) return;
-      foreach (var graph in _statsGraphs.Values) {
-        graph.gameObject.SetActive(false);
-      }
-    }
+			UpdateHeight();
 
-    private void OnEnable() {
-      if (_statsGraphs == null) return;
-      foreach (var graph in _statsGraphs.Values) {
-        graph.gameObject.SetActive(true);
-      }
-    }
+			// Set the first label again.
+			_statDropdown.SetValueWithoutNotify(0);
+		}
 
-    public void ToggleRenderDisplay() {
-      var active = _combinedGraphRender.gameObject.activeSelf;
-      _combinedGraphRender.gameObject.SetActive(!active);
-      
-      if (active) {
-        OnDisable();
-        UpdateHeight(_headerHeight);
-        _toggleButton.transform.rotation = Quaternion.Euler(0, 0, 90);
-      } else {
-        OnEnable();
-        UpdateHeight();
-        _toggleButton.transform.rotation = Quaternion.identity;
-      }
-    }
+		private void InstantiateStatGraph(NetworkObjectStat stat)
+		{
+			FusionNetworkObjectStatsGraph graph = Instantiate(_statsGraphPrefab, _combinedGraphRender);
+			graph.SetupNetworkObjectStat(NetworkObjectID, stat);
+			_statsGraphs.Add(stat, graph);
+		}
 
-    public void DestroyCombinedGraph() {
-      _fusionStatistics.MonitorNetworkObject(_networkObject, _objectStatisticsInstance, false);
-    }
-  }
+		private void DestroyStatGraph(NetworkObjectStat stat)
+		{
+			_statsGraphs[stat].gameObject.SetActive(false);
+			Destroy(_statsGraphs[stat].gameObject);
+			_statsGraphs.Remove(stat);
+		}
+
+		private void UpdateHeight(float overrideValue = -1)
+		{
+			var sizeDelta = _rect.sizeDelta;
+			var height = overrideValue >= 0 ? overrideValue : _headerHeight + _statsGraphs.Count * _graphHeight;
+			_rect.sizeDelta = new Vector2(sizeDelta.x, height);
+
+			// Need to refresh vertical scroll
+			_parentContentSizeFitter.enabled = false;
+			_parentContentSizeFitter.enabled = true;
+		}
+
+		private void OnDisable()
+		{
+			if (_statsGraphs == null) return;
+			foreach (var graph in _statsGraphs.Values)
+			{
+				graph.gameObject.SetActive(false);
+			}
+		}
+
+		private void OnEnable()
+		{
+			if (_statsGraphs == null) return;
+			foreach (var graph in _statsGraphs.Values)
+			{
+				graph.gameObject.SetActive(true);
+			}
+		}
+
+		public void ToggleRenderDisplay()
+		{
+			var active = _combinedGraphRender.gameObject.activeSelf;
+			_combinedGraphRender.gameObject.SetActive(!active);
+
+			if (active)
+			{
+				OnDisable();
+				UpdateHeight(_headerHeight);
+				_toggleButton.transform.rotation = Quaternion.Euler(0, 0, 90);
+			}
+			else
+			{
+				OnEnable();
+				UpdateHeight();
+				_toggleButton.transform.rotation = Quaternion.identity;
+			}
+		}
+
+		public void DestroyCombinedGraph()
+		{
+			_fusionStatistics.MonitorNetworkObject(_networkObject, _objectStatisticsInstance, false);
+		}
+	}
 }
