@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 3633951647841219729}
   - component: {fileID: 125669602560708736}
   - component: {fileID: -8114483492200036221}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Card_DiamondQueen
   m_TagString: Untagged
   m_Icon: {fileID: 0}

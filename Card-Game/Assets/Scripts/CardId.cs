@@ -2,6 +2,25 @@ using UnityEngine;
 
 public class CardId : MonoBehaviour
 {
+	public static int CalculatePower(int Rank)
+	{
+		int power;
+		switch (Rank)
+		{
+			case 1:
+				power = 14;
+				break;
+			case 2:
+			case 4:
+			case 10:
+				power = 15;
+				break;
+			default:
+				power = Rank;
+				break;
+		}
+		return power;
+	}
 }
 
 public enum CardIds

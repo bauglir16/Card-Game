@@ -8,6 +8,7 @@ public class CardData : MonoBehaviour
 	public string debugName;
 	public void Set(CardIds p_Id)
 	{
+		gameObject.layer = 6;
 		if (p_Id == CardIds.Null)
 			return;
 
