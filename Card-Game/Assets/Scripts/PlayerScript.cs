@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -14,6 +15,7 @@ public class PlayerScript : MonoBehaviour
 	public List<CardData> third3Cards;
 	public Transform[][] downCards = new Transform[3][];
 	public List<CardData> clickedObjects = new List<CardData>();
+	public List<CardData> choosingList = new List<CardData>();
 	Transform m_HandPivot;
 	Vector3 m_ColliderSizeVector;
 	public Vector3 m_RendererSizeVector;
@@ -37,18 +39,23 @@ public class PlayerScript : MonoBehaviour
 	public Button okButton;
 	public bool deckFinished = false;
 	public int RankOnTop;
+	public int PowerOnTop;
 	public int countRankOnTop = 0;
+	public bool finishedPlaying = false;
+	bool last3 = false;
+	public bool Out = false;
+	bool arranged = false;
 
 	public bool finishedChoosing { get; private set; }
 
 	void ArrangeCardsAtHand()
 	{
-		if (cardsAtHand.Count == 0) return;
+		if (cardsAtHand.Count == 0 || arranged) return;
 
 		cardsAtHand.Sort((x, y) => x.Rank - y.Rank);
 
-		m_ColliderSizeVector = transform.InverseTransformVector(cardsAtHand[0].transform.GetChild(0).GetComponent<BoxCollider>().bounds.size);
-		m_RendererSizeVector = cardsAtHand[0].transform.GetChild(0).GetComponent<MeshFilter>().mesh.bounds.size;
+		m_ColliderSizeVector = transform.InverseTransformVector(cardsAtHand[0].m_Collider.bounds.size);
+		m_RendererSizeVector = cardsAtHand[0].m_MeshFilter.mesh.bounds.size;
 		float xDistanceOfCards = m_ColliderSizeVector.x;
 		float zDistanceOfCards = m_RendererSizeVector.z;
 		float xOffestMultiplier = 0.5f;
@@ -64,7 +71,7 @@ public class PlayerScript : MonoBehaviour
 		{
 			cardsAtHand[sideCardsNumber].transform.rotation = transform.rotation * Quaternion.Euler(0, 180f, 0);
 
-			cardsAtHand[sideCardsNumber].transform.LookAt(new Vector3(cardsAtHand[sideCardsNumber].transform.position.x, transform.position.y + playerHeadHight, transform.position.z));
+			//cardsAtHand[sideCardsNumber].transform.LookAt(new Vector3(cardsAtHand[sideCardsNumber].transform.position.x, transform.position.y + playerHeadHight, transform.position.z));
 			cardsAtHand[sideCardsNumber].transform.position = transform.position + transform.forward * (handForwardRadius - zDistanceOfCards * 3 * sideCardsNumber);
 			if (cardsAtHand.Count == 1) return;
 			xOffestMultiplier = 1;
@@ -86,6 +93,8 @@ public class PlayerScript : MonoBehaviour
 			cardsAtHand[j].transform.position = transform.position + toTheRight + transform.forward * (handForwardRadius - zDistanceOfCards * 3 * j);
 			iterationCounter++;
 		}
+
+		arranged = true;
 	}
 
 	public void GiveFirst3Cards(CardData card1, CardData card2, CardData card3)
@@ -101,7 +110,7 @@ public class PlayerScript : MonoBehaviour
 		third3Cards.Add(card2);
 		third3Cards.Add(card3);
 
-		Debug.Log("GiveFirst3Cards");
+		//Debug.Log("GiveFirst3Cards");
 	}
 
 	public void GiveSecond3Cards(CardData card1, CardData card2, CardData card3)
@@ -135,12 +144,16 @@ public class PlayerScript : MonoBehaviour
 	public void GiveCardAtHand(CardData card)
 	{
 		cardsAtHand.Add(card);
+		arranged = false;
 		ArrangeCardsAtHand();
 	}
 
 	public void TakeAllCards(List<CardData> cards)
 	{
 		cardsAtHand.AddRange(cards);
+		cards.Clear();
+		arranged = false;
+		ArrangeCardsAtHand();
 	}
 
 	public void PrepareChooseCards()
@@ -150,9 +163,26 @@ public class PlayerScript : MonoBehaviour
 		//}
 		playerCamera.transform.SetPositionAndRotation(AboveCardsCameraPos.position, AboveCardsCameraPos.rotation);
 		okButton.enabled = false;
+		choosingList.AddRange(first3Cards);
+		choosingList.AddRange(second3Cards);
 		m_Phase = phases.choosing;
 		okButton.onClick.AddListener(() => {
 			int index;
+
+			if (last3)
+			{
+				if (clickedObjects.Count > 1)
+				{
+					//Debug.Log("Error. Only one card");
+					Time.timeScale = 0f;
+				}
+
+				index = third3Cards.IndexOf(clickedObjects[0]);
+				GiveCardAtHand(third3Cards[index]);
+				third3Cards.RemoveAt(index);
+				//Debug.Log("Player: Third3Cards");
+			}
+
 			for (int i = 0; i < clickedObjects.Count; i++)
 			{
 				index = first3Cards.IndexOf(clickedObjects[i]);
@@ -161,16 +191,18 @@ public class PlayerScript : MonoBehaviour
 					case -1:
 						index = second3Cards.IndexOf(clickedObjects[i]);
 						GiveCardAtHand(second3Cards[index]);
+						second3Cards.RemoveAt(index);
 						//second3Cards[index] = first3Cards[index];
 						////first3Cards[index].transform.GetChild(0).GetComponent<BoxCollider>().enabled = false;
 						//first3Cards[index] = null;
-						Debug.Log("Player: Second3Cards");
+						//Debug.Log("Player: Second3Cards");
 						break;
 					default:
 						GiveCardAtHand(first3Cards[index]);
+						first3Cards.RemoveAt(index);
 						//first3Cards[index].transform.GetChild(0).GetComponent<BoxCollider>().enabled = false;
 						//first3Cards[index] = null;
-						Debug.Log("Player: first3Cards");
+						//Debug.Log("Player: first3Cards");
 						//first3Cards.Insert(0, null);
 						break;
 				}
@@ -178,9 +210,15 @@ public class PlayerScript : MonoBehaviour
 
 			clickedObjects.Clear();
 			second3Cards.AddRange(first3Cards);
+			for (int i = 0; i < second3Cards.Count; i++)
+			{
+				second3Cards[i].transform.SetPositionAndRotation(downCards[1][i].position, downCards[1][i].rotation);
+			}
 			first3Cards.Clear();
-			if (playerCamera == null) Debug.Log("Camera is null");
-			//m_Phase = phases.Null;
+			//if (playerCamera == null) Debug.Log("Camera is null");
+			OnHoverExit(cardsAtHand[0]);
+			OnHoverExit(cardsAtHand[1]);
+			OnHoverExit(cardsAtHand[2]);
 			finishedChoosing = true;
 		});
 	}
@@ -190,7 +228,7 @@ public class PlayerScript : MonoBehaviour
 	{
 		float x = transform.rotation.x, y = transform.rotation.y;
 		transform.LookAt(new Vector3(transform.parent.transform.position.x, transform.position.y, transform.parent.transform.position.z));
-		Debug.Log(transform.rotation.x.ToString() + " " + transform.rotation.y.ToString() + " " + transform.rotation.z.ToString());
+		//Debug.Log(transform.rotation.x.ToString() + " " + transform.rotation.y.ToString() + " " + transform.rotation.z.ToString());
 
 		for (int i = 0; i < 3; i++)
 		{
@@ -208,72 +246,72 @@ public class PlayerScript : MonoBehaviour
 		RankOnTop = 0;
 	}
 
-	void HoverDownCards()
-	{
-		if (clickedObjects.Capacity != 3) clickedObjects = new List<CardData>(3);
-		Ray ray = playerCamera.ScreenPointToRay(Input.mousePosition);
-		RaycastHit hit;
+	//void HoverDownCards()
+	//{
+	//	if (clickedObjects.Capacity != 3) clickedObjects = new List<CardData>(3);
+	//	Ray ray = playerCamera.ScreenPointToRay(Input.mousePosition);
+	//	RaycastHit hit;
 
-		okButton.enabled = clickedObjects.Count == 3;
+	//	okButton.enabled = clickedObjects.Count == 3;
 
-		if (Physics.Raycast(ray, out hit))
-		{
-			Collider hoveredCollider = hit.collider;
-			if (hoveredCollider == null)
-			{
-				Debug.Log("Collider null");
-				return;
-			}
-			else if (hoveredCollider.gameObject == null)
-			{
-				Debug.Log("GameObject null");
-				return;
-			}
-			else if (hoveredCollider.gameObject.transform.parent == null)
-			{
-				//Debug.Log("Parent null");
-				return;
-			}
-			CardData hoveredCard = hoveredCollider.gameObject.transform.parent.GetComponent<CardData>();
-			if (first3Cards.Contains(hoveredCard) || second3Cards.Contains(hoveredCard))
-			{
+	//	if (Physics.Raycast(ray, out hit))
+	//	{
+	//		Collider hoveredCollider = hit.collider;
+	//		if (hoveredCollider == null)
+	//		{
+	//			Debug.Log("Collider null");
+	//			return;
+	//		}
+	//		else if (hoveredCollider.gameObject == null)
+	//		{
+	//			Debug.Log("GameObject null");
+	//			return;
+	//		}
+	//		else if (hoveredCollider.gameObject.transform.parent == null)
+	//		{
+	//			//Debug.Log("Parent null");
+	//			return;
+	//		}
+	//		CardData hoveredCard = hoveredCollider.gameObject.transform.parent.GetComponent<CardData>();
+	//		if (first3Cards.Contains(hoveredCard) || second3Cards.Contains(hoveredCard))
+	//		{
 
-				if (Input.GetMouseButtonDown(0))
-				{
-					//if (clickedObjects.Count > 0 && hoveredObject.Rank != clickedObjects[0].Rank)
-					//{
-					//	for (int i = 0; i < clickedObjects.Count; i++)
-					//		OnHoverExit(clickedObjects[i].transform.GetChild(0).gameObject);
-					//	clickedObjects.Clear();
-					//}
-					if (!clickedObjects.Contains(hoveredCard) && clickedObjects.Count < 3) clickedObjects.Add(hoveredCard);
-					else clickedObjects.Remove(hoveredCard);
-				}
+	//			if (Input.GetMouseButtonDown(0))
+	//			{
+	//				//if (clickedObjects.Count > 0 && hoveredObject.Rank != clickedObjects[0].Rank)
+	//				//{
+	//				//	for (int i = 0; i < clickedObjects.Count; i++)
+	//				//		OnHoverExit(clickedObjects[i].transform.GetChild(0).gameObject);
+	//				//	clickedObjects.Clear();
+	//				//}
+	//				if (!clickedObjects.Contains(hoveredCard) && clickedObjects.Count < 3) clickedObjects.Add(hoveredCard);
+	//				else clickedObjects.Remove(hoveredCard);
+	//			}
 
-				if (hoveredCard != lastHoveredObject)
-				{
-					// Handle leaving the last hovered object
-					if (lastHoveredObject != null && !clickedObjects.Contains(lastHoveredObject))
-					{
-						OnHoverExit(lastHoveredObject.transform.GetChild(0).gameObject);
-					}
+	//			if (hoveredCard != lastHoveredObject)
+	//			{
+	//				// Handle leaving the last hovered object
+	//				if (lastHoveredObject != null && !clickedObjects.Contains(lastHoveredObject))
+	//				{
+	//					OnHoverExit(lastHoveredObject.transform.GetChild(0).gameObject);
+	//				}
 
-					// Handle entering the new hovered object
-					OnHoverEnter(hoveredCard.transform.GetChild(0).gameObject);
-					lastHoveredObject = hoveredCard;
-				}
-			}
-		}
-		else
-		{
-			// If no object is hovered, handle exiting the last hovered object
-			if (lastHoveredObject != null)
-			{
-				OnHoverExit(lastHoveredObject.transform.GetChild(0).gameObject);
-				lastHoveredObject = null;
-			}
-		}
-	}
+	//				// Handle entering the new hovered object
+	//				OnHoverEnter(hoveredCard.transform.GetChild(0).gameObject);
+	//				lastHoveredObject = hoveredCard;
+	//			}
+	//		}
+	//	}
+	//	else
+	//	{
+	//		// If no object is hovered, handle exiting the last hovered object
+	//		if (lastHoveredObject != null)
+	//		{
+	//			OnHoverExit(lastHoveredObject.transform.GetChild(0).gameObject);
+	//			lastHoveredObject = null;
+	//		}
+	//	}
+	//}
 
 	public bool CanBePlayed()
 	{
@@ -281,20 +319,17 @@ public class PlayerScript : MonoBehaviour
 
 		if (clickedObjects.Count == 0) return true;
 
-		if (RankOnTop == 7)
+		if (PowerOnTop == 7)
 			canBePlayed = clickedObjects[0].power <= 7 || clickedObjects[0].Rank == 10 || clickedObjects[0].Rank == 2 || clickedObjects[0].Rank == 4;
 		else 
-			canBePlayed = (clickedObjects[0].power >= CardId.CalculatePower(RankOnTop)) ? true : false;
+			canBePlayed = (clickedObjects[0].power >= PowerOnTop) ? true : false;
 
 		int temp = clickedObjects[0].Rank;
 	 	return clickedObjects.All(x => x.Rank == temp) && canBePlayed;
 	}
 
-	void HoverCards(List<CardData> list, int limit = 4)
+	void HoverCards(int limit = 4)
 	{
-		//if (RankOnTop != 0)
-		//	if (cardsAtHand.Max<CardData>(c => c.power) < CardId.CalculatePower(RankOnTop))
-		//		return;
 
 		if (clickedObjects.Capacity != limit) clickedObjects = new List<CardData>(limit);
 		Ray ray = playerCamera.ScreenPointToRay(Input.mousePosition);
@@ -303,34 +338,45 @@ public class PlayerScript : MonoBehaviour
 		if (Physics.Raycast(ray, out hit))
 		{
 			Collider hoveredCollider = hit.collider;
-			if (hoveredCollider == null || hoveredCollider.gameObject.layer != 6) return;
+			if (hoveredCollider == null || hoveredCollider.gameObject.layer != 6)
+			{
+				if (lastHoveredObject != null)
+				{
+					OnHoverExit(lastHoveredObject);
+					lastHoveredObject = null;
+				}
+				return;
+			}
 			CardData hoveredCard = hoveredCollider.gameObject.transform.parent.GetComponent<CardData>();
-			if (list.Contains(hoveredCard))
+			if (choosingList.Contains(hoveredCard))
 			{
 
 				if (Input.GetMouseButtonDown(0))
 				{
-					//if (clickedObjects.Count > 0 && hoveredObject.Rank != clickedObjects[0].Rank)
-					//{
-					//	for (int i = 0; i < clickedObjects.Count; i++)
-					//		OnHoverExit(clickedObjects[i].transform.GetChild(0).gameObject);
-					//	clickedObjects.Clear();
-					//}
-					if (!clickedObjects.Contains(hoveredCard)) clickedObjects.Add(hoveredCard);
+					if (!clickedObjects.Contains(hoveredCard) && clickedObjects.Count < limit) clickedObjects.Add(hoveredCard);
 					else clickedObjects.Remove(hoveredCard);
 				}
 
 				if (hoveredCard != lastHoveredObject)
 				{
 					// Handle leaving the last hovered object
-					if (lastHoveredObject != null && !clickedObjects.Contains(lastHoveredObject))
+					if (lastHoveredObject != null)
 					{
-						OnHoverExit(lastHoveredObject.transform.GetChild(0).gameObject);
+						OnHoverExit(lastHoveredObject);
 					}
 
 					// Handle entering the new hovered object
-					OnHoverEnter(hoveredCard.transform.GetChild(0).gameObject);
+					if (clickedObjects.Count < limit)
+						OnHoverEnter(hoveredCard);
 					lastHoveredObject = hoveredCard;
+				}
+			}
+			if (hoveredCard != lastHoveredObject)
+			{
+				// Handle leaving the last hovered object
+				if (lastHoveredObject != null)
+				{
+					OnHoverExit(lastHoveredObject);
 				}
 			}
 		}
@@ -339,12 +385,12 @@ public class PlayerScript : MonoBehaviour
 			// If no object is hovered, handle exiting the last hovered object
 			if (lastHoveredObject != null)
 			{
-				OnHoverExit(lastHoveredObject.transform.GetChild(0).gameObject);
+				OnHoverExit(lastHoveredObject);
 				lastHoveredObject = null;
 			}
 		}
 
-		okButton.enabled = CanBePlayed();
+		okButton.enabled = (m_Phase == phases.choosing || last3) ? clickedObjects.Count == limit : CanBePlayed() ;
 	}
 
 	public void Try()
@@ -371,14 +417,16 @@ public class PlayerScript : MonoBehaviour
 		{
 			case phases.choosing:
 				//PrepareChooseCards();
-				HoverDownCards();
+				HoverCards(3);
 				break;
 			case phases.playing:
+				if (last3)
+				{
+					HoverCards(1);
+					break;
+				}
 				ArrangeCardsAtHand();
-				HoverCards(cardsAtHand);
-
-				break;
-			case phases.last3:
+				HoverCards();
 				break;
 		}
 
@@ -399,36 +447,64 @@ public class PlayerScript : MonoBehaviour
 		//}
 	}
 
-	void OnHoverEnter(GameObject obj)
+	void OnHoverEnter(CardData obj)
 	{
-		Renderer renderer = obj.GetComponent<Renderer>();
-		if (renderer != null)
-		{
-			renderer.material.color = Color.cyan; // Highlight color
-		}
+		obj.m_Renderer.material.color = Color.cyan; // Highlight color
 	}
 
-	void OnHoverExit(GameObject obj)
+	void OnHoverExit(CardData obj, bool force = false)
 	{
-		Renderer renderer = obj.GetComponent<Renderer>();
-		if (renderer != null)
-		{
-			renderer.material.color = Color.white; // Original color
-		}
+		if (force || !clickedObjects.Contains(obj))
+			obj.m_Renderer.material.color = Color.white; // Original color
 	}
 
 	internal void Play()
 	{
+		if (cardsAtHand.Count == 0 && deckFinished && second3Cards.Count > 0)
+		{
+			for (int i = 0; i < 3; i++)
+			{
+				GiveCardAtHand(second3Cards[i]);
+			}
+			second3Cards.Clear();
+		}
+		else if (cardsAtHand.Count == 0 && deckFinished && second3Cards.Count == 0)
+		{
+			choosingList = third3Cards;
+			last3 = true;
+		}
+		else if (cardsAtHand.Count > 0) choosingList = cardsAtHand;
+
 		m_Phase = phases.playing;
+		finishedPlaying = false;
 		playerCamera.transform.SetPositionAndRotation(BehindCameraPos.position, BehindCameraPos.rotation);
 
+		//Debug.Log("Play");
+
 		okButton.onClick.AddListener(() => {
-			for (int i = 0; i < clickedObjects.Count; i++)
+			if (last3)
 			{
-				cardsAtHand.Remove(clickedObjects[i]);
+				GiveCardAtHand(clickedObjects[0]);
+				OnHoverExit(clickedObjects[0], true);
+				third3Cards.Remove(clickedObjects[0]);
+				clickedObjects.Clear();
+				choosingList = cardsAtHand;
+				last3 = false;
+			}
+			else
+			{
+				for (int i = 0; i < clickedObjects.Count; i++)
+				{
+					OnHoverExit(clickedObjects[i], true);
+					cardsAtHand.Remove(clickedObjects[i]);
+				}
+				finishedPlaying = true;
+				//Debug.Log(finishedPlaying);
 			}
 
-			m_Phase = phases.Null;
+			Out = third3Cards.Count == 0 && cardsAtHand.Count == 0;
+			arranged = false;
+			ArrangeCardsAtHand();
 		});
 	}
 }
