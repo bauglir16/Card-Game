@@ -20,13 +20,15 @@ public class GameLogic : MonoBehaviour
 	GameObject m_PhysicalDeck;
 	float m_cardThickness;
 	bool m_SetupStage;
-	int m_PlayerIndex, m_3CardsIndex;
+	public int m_PlayerIndex;
+	int m_3CardsIndex;
 	enum Stages { setup, playing, choosing }
 	Stages stage = Stages.setup;
 	public int RankOnTop;
 	public int countRankOnTop = 0;
 	public int PowerOnTop;
 	bool sameTurn = false;
+	bool playerIsOut;
 
 	List<CardData> cards = new List<CardData>();
 	bool again = false;
@@ -73,12 +75,14 @@ public class GameLogic : MonoBehaviour
 		player.GiveCardAtHand(newCard);
 		m_PhysicalDeck.transform.position -= new Vector3(0, m_cardThickness, 0);
 
-		if (m_ShuffledDeck.Count == 0)
+		if (m_ShuffledDeck.Count == 0 && !m_Players[0].deckFinished)
 		{
 			for (int i = 0;i < m_Players.Count;i++)
 			{
 				m_Players[i].deckFinished = true;
 			}
+
+			Debug.Log("Deck finished");
 		}
 	}
 
@@ -242,6 +246,7 @@ public class GameLogic : MonoBehaviour
 						PowerOnTop = 0;
 					else
 						PowerOnTop = firstCard.power;
+					playedPos.position += new Vector3(0, m_cardThickness, 0);
 					stage = Stages.choosing;
 					//m_Players[3].Try();
 				}
@@ -306,8 +311,7 @@ public class GameLogic : MonoBehaviour
 								Debug.Log("Player " + m_PlayerIndex + " is the winner");
 							}
 
-							m_Players.RemoveAt(m_PlayerIndex);
-							m_PlayerIndex -= (m_PlayerIndex == m_Players.Count) ? m_PlayerIndex + 1 : 1; //Size of list = last index before removal
+							playerIsOut = true;
 
 							if (playAgain)
 							{
@@ -330,7 +334,18 @@ public class GameLogic : MonoBehaviour
 							m_Players[m_PlayerIndex].m_Phase = PlayerScript.phases.Null;
 							m_Players[m_PlayerIndex].okButton = null;
 							m_Players[m_PlayerIndex].playerCamera = null;
+
+							if (playerIsOut)
+							{
+								m_Players.RemoveAt(m_PlayerIndex);
+								m_PlayerIndex -= (m_PlayerIndex == m_Players.Count) ? m_PlayerIndex + 1 : 1; //Size of list = last index before removal
+								playerIsOut = false;
+							}
+
 							m_PlayerIndex = (m_PlayerIndex + 1) % m_Players.Count();
+
+							if (m_Players.Count < playerCount)
+								Debug.Log(m_PlayerIndex);
 						}
 						else
 						{
