@@ -117,7 +117,7 @@ public class GameLogic : MonoBehaviour
 			else if (player.clickedObjects[0].Rank == 4) 
 			{
 				RankOnTop = 4;
-				countRankOnTop = 1;
+				countRankOnTop = player.clickedObjects.Count;
 			}
 			else
 			{
