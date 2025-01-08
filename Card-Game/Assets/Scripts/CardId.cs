@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public class CardId : MonoBehaviour
@@ -23,7 +24,7 @@ public class CardId : MonoBehaviour
 	}
 }
 
-public enum CardIds
+public enum CardIds : int
 {
 	Null, ClubAce, Club2, Club3, Club4, Club5, Club6, Club7, Club8, Club9, Club10, ClubJack, ClubQueen, ClubKing,
 	DiamondAce, Diamond2, Diamond3, Diamond4, Diamond5, Diamond6, Diamond7, Diamond8, Diamond9, Diamond10, DiamondJack, DiamondQueen, DiamondKing,

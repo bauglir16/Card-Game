@@ -99,6 +99,7 @@ public class PlayerScript : MonoBehaviour
 
 	public void GiveFirst3Cards(CardData card1, CardData card2, CardData card3)
 	{
+		if (card1 == null) Debug.Log("Null");
 		card1.transform.position = downCards[2][0].transform.position;
 		card1.transform.rotation = downCards[2][0].transform.rotation;
 		card2.transform.position = downCards[2][1].transform.position;
@@ -156,16 +157,17 @@ public class PlayerScript : MonoBehaviour
 		ArrangeCardsAtHand();
 	}
 
-	public void PrepareChooseCards()
+	public void PrepareChooseCards(bool Internal = true)
 	{
-		//for (int i = 0; i < 3; i++) {
-		//	third3Cards[i].transform.GetChild(0).gameObject.GetComponent<BoxCollider>().enabled = false;
-		//}
-		playerCamera.transform.SetPositionAndRotation(AboveCardsCameraPos.position, AboveCardsCameraPos.rotation);
-		okButton.enabled = false;
-		choosingList.AddRange(first3Cards);
-		choosingList.AddRange(second3Cards);
-		m_Phase = phases.choosing;
+		if (Internal)
+		{
+			playerCamera.transform.SetPositionAndRotation(AboveCardsCameraPos.position, AboveCardsCameraPos.rotation);
+			okButton.enabled = false;
+			choosingList.AddRange(first3Cards);
+			choosingList.AddRange(second3Cards);
+			m_Phase = phases.choosing;
+		}
+		Debug.Log("Button is " + ((okButton == null) ? "" : "not ") + "null");
 		okButton.onClick.AddListener(() => {
 			int index;
 
@@ -183,6 +185,7 @@ public class PlayerScript : MonoBehaviour
 				//Debug.Log("Player: Third3Cards");
 			}
 
+			Debug.Log("Clicked size: " + clickedObjects.Count);
 			for (int i = 0; i < clickedObjects.Count; i++)
 			{
 				index = first3Cards.IndexOf(clickedObjects[i]);
@@ -192,33 +195,28 @@ public class PlayerScript : MonoBehaviour
 						index = second3Cards.IndexOf(clickedObjects[i]);
 						GiveCardAtHand(second3Cards[index]);
 						second3Cards.RemoveAt(index);
-						//second3Cards[index] = first3Cards[index];
-						////first3Cards[index].transform.GetChild(0).GetComponent<BoxCollider>().enabled = false;
-						//first3Cards[index] = null;
 						//Debug.Log("Player: Second3Cards");
 						break;
 					default:
 						GiveCardAtHand(first3Cards[index]);
 						first3Cards.RemoveAt(index);
-						//first3Cards[index].transform.GetChild(0).GetComponent<BoxCollider>().enabled = false;
-						//first3Cards[index] = null;
 						//Debug.Log("Player: first3Cards");
-						//first3Cards.Insert(0, null);
 						break;
 				}
 			}
 
 			clickedObjects.Clear();
 			second3Cards.AddRange(first3Cards);
+			Debug.Log("Second hand size: " + second3Cards.Count);
 			for (int i = 0; i < second3Cards.Count; i++)
 			{
 				second3Cards[i].transform.SetPositionAndRotation(downCards[1][i].position, downCards[1][i].rotation);
 			}
 			first3Cards.Clear();
-			//if (playerCamera == null) Debug.Log("Camera is null");
 			OnHoverExit(cardsAtHand[0]);
 			OnHoverExit(cardsAtHand[1]);
 			OnHoverExit(cardsAtHand[2]);
+			if (Internal) SetCamera();
 			finishedChoosing = true;
 		});
 	}
@@ -226,6 +224,7 @@ public class PlayerScript : MonoBehaviour
 	// Start is called once before the first execution of Update after the MonoBehaviour is created
 	void Start()
 	{
+		Debug.Log("Player Started");
 		float x = transform.rotation.x, y = transform.rotation.y;
 		transform.LookAt(new Vector3(transform.parent.transform.position.x, transform.position.y, transform.parent.transform.position.z));
 		//Debug.Log(transform.rotation.x.ToString() + " " + transform.rotation.y.ToString() + " " + transform.rotation.z.ToString());
@@ -244,74 +243,8 @@ public class PlayerScript : MonoBehaviour
 		BehindCameraPos = transform.GetChild(9);
 		AboveCardsCameraPos = transform.GetChild(10);
 		RankOnTop = 0;
+		finishedChoosing = false;
 	}
-
-	//void HoverDownCards()
-	//{
-	//	if (clickedObjects.Capacity != 3) clickedObjects = new List<CardData>(3);
-	//	Ray ray = playerCamera.ScreenPointToRay(Input.mousePosition);
-	//	RaycastHit hit;
-
-	//	okButton.enabled = clickedObjects.Count == 3;
-
-	//	if (Physics.Raycast(ray, out hit))
-	//	{
-	//		Collider hoveredCollider = hit.collider;
-	//		if (hoveredCollider == null)
-	//		{
-	//			Debug.Log("Collider null");
-	//			return;
-	//		}
-	//		else if (hoveredCollider.gameObject == null)
-	//		{
-	//			Debug.Log("GameObject null");
-	//			return;
-	//		}
-	//		else if (hoveredCollider.gameObject.transform.parent == null)
-	//		{
-	//			//Debug.Log("Parent null");
-	//			return;
-	//		}
-	//		CardData hoveredCard = hoveredCollider.gameObject.transform.parent.GetComponent<CardData>();
-	//		if (first3Cards.Contains(hoveredCard) || second3Cards.Contains(hoveredCard))
-	//		{
-
-	//			if (Input.GetMouseButtonDown(0))
-	//			{
-	//				//if (clickedObjects.Count > 0 && hoveredObject.Rank != clickedObjects[0].Rank)
-	//				//{
-	//				//	for (int i = 0; i < clickedObjects.Count; i++)
-	//				//		OnHoverExit(clickedObjects[i].transform.GetChild(0).gameObject);
-	//				//	clickedObjects.Clear();
-	//				//}
-	//				if (!clickedObjects.Contains(hoveredCard) && clickedObjects.Count < 3) clickedObjects.Add(hoveredCard);
-	//				else clickedObjects.Remove(hoveredCard);
-	//			}
-
-	//			if (hoveredCard != lastHoveredObject)
-	//			{
-	//				// Handle leaving the last hovered object
-	//				if (lastHoveredObject != null && !clickedObjects.Contains(lastHoveredObject))
-	//				{
-	//					OnHoverExit(lastHoveredObject.transform.GetChild(0).gameObject);
-	//				}
-
-	//				// Handle entering the new hovered object
-	//				OnHoverEnter(hoveredCard.transform.GetChild(0).gameObject);
-	//				lastHoveredObject = hoveredCard;
-	//			}
-	//		}
-	//	}
-	//	else
-	//	{
-	//		// If no object is hovered, handle exiting the last hovered object
-	//		if (lastHoveredObject != null)
-	//		{
-	//			OnHoverExit(lastHoveredObject.transform.GetChild(0).gameObject);
-	//			lastHoveredObject = null;
-	//		}
-	//	}
-	//}
 
 	public bool CanBePlayed()
 	{
@@ -390,7 +323,8 @@ public class PlayerScript : MonoBehaviour
 			}
 		}
 
-		okButton.enabled = (m_Phase == phases.choosing || last3) ? clickedObjects.Count == limit : CanBePlayed() ;
+		if (okButton != null) 
+			okButton.enabled = (m_Phase == phases.choosing || last3) ? clickedObjects.Count == limit : CanBePlayed() ;
 	}
 
 	public void Try()
@@ -458,7 +392,7 @@ public class PlayerScript : MonoBehaviour
 			obj.m_Renderer.material.color = Color.white; // Original color
 	}
 
-	internal void Play()
+	internal void Play(bool Internal = true)
 	{
 		if (cardsAtHand.Count == 0 && deckFinished && second3Cards.Count > 0)
 		{
@@ -475,36 +409,81 @@ public class PlayerScript : MonoBehaviour
 		}
 		else if (cardsAtHand.Count > 0) choosingList = cardsAtHand;
 
-		m_Phase = phases.playing;
-		finishedPlaying = false;
-		playerCamera.transform.SetPositionAndRotation(BehindCameraPos.position, BehindCameraPos.rotation);
-
 		//Debug.Log("Play");
-
-		okButton.onClick.AddListener(() => {
-			if (last3)
+		if (Internal)
+		{
+			m_Phase = phases.playing;
+			finishedPlaying = false;
+		}
+		okButton.onClick.AddListener(() =>
 			{
-				GiveCardAtHand(clickedObjects[0]);
-				OnHoverExit(clickedObjects[0], true);
-				third3Cards.Remove(clickedObjects[0]);
-				clickedObjects.Clear();
-				choosingList = cardsAtHand;
-				last3 = false;
-			}
-			else
-			{
-				for (int i = 0; i < clickedObjects.Count; i++)
+				if (last3)
 				{
-					OnHoverExit(clickedObjects[i], true);
-					cardsAtHand.Remove(clickedObjects[i]);
+					GiveCardAtHand(clickedObjects[0]);
+					OnHoverExit(clickedObjects[0], true);
+					third3Cards.Remove(clickedObjects[0]);
+					clickedObjects.Clear();
+					choosingList = cardsAtHand;
+					last3 = false;
 				}
-				finishedPlaying = true;
-				//Debug.Log(finishedPlaying);
-			}
+				else
+				{
+					for (int i = 0; i < clickedObjects.Count; i++)
+					{
+						OnHoverExit(clickedObjects[i], true);
+						cardsAtHand.Remove(clickedObjects[i]);
+					}
+					finishedPlaying = true;
+					//Debug.Log(finishedPlaying);
+				}
 
-			Out = third3Cards.Count == 0 && cardsAtHand.Count == 0;
-			arranged = false;
-			ArrangeCardsAtHand();
-		});
+				Out = third3Cards.Count == 0 && cardsAtHand.Count == 0;
+				arranged = false;
+				ArrangeCardsAtHand();
+			});
+	}
+
+	internal void addClickedCard(CardIds cardId, List<CardIds> choosingList = null)
+	{
+		CardData card;
+		if (choosingList == null) 
+			card = cardsAtHand.Find(x => x.Id == cardId);
+		else
+		{
+			card = first3Cards.Find(x => x.Id == cardId);
+			if (card == null)
+				card = second3Cards.Find(x=> x.Id == cardId);
+		}
+		if(card == null) Debug.LogError($"Card not found: {cardId}");
+		clickedObjects.Add(card);
+	}
+
+	internal int[] ClickedObjectsIdsAsInts()
+	{
+		List<int> result = new List<int>();
+
+		for (int i = 0; i < clickedObjects.Count; i++) 
+		{
+			result.Add((int)clickedObjects[i].Id);
+		}
+
+		return result.ToArray();
+	}
+
+	internal int[] CardsAtHandIdsAsInts()
+	{
+		List<int> result = new List<int>();
+
+		for (int i = 0; i < cardsAtHand.Count; i++)
+		{
+			result.Add((int)cardsAtHand[i].Id);
+		}
+
+		return result.ToArray();
+	}
+
+	internal void SetCamera()
+	{
+		playerCamera.transform.SetPositionAndRotation(BehindCameraPos.position, BehindCameraPos.rotation);
 	}
 }
