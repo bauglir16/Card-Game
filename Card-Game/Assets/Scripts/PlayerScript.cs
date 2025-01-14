@@ -219,6 +219,7 @@ public class PlayerScript : MonoBehaviour
 			if (Internal) SetCamera();
 			finishedChoosing = true;
 		});
+		Debug.Log($"Event listener count: {okButton.onClick.GetPersistentEventCount()}");
 	}
 
 	// Start is called once before the first execution of Update after the MonoBehaviour is created

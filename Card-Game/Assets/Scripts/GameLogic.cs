@@ -22,7 +22,6 @@ public class GameLogic : NetworkBehaviour
 	float m_cardThickness;
 	public int m_PlayerIndex;
 	enum Stages { Null, setup, choosing, givingCards, playing }
-	Stages stage = Stages.Null;
 	public int RankOnTop;
 	public int countRankOnTop = 0;
 	public int PowerOnTop;
@@ -38,7 +37,7 @@ public class GameLogic : NetworkBehaviour
 	bool again = false;
 	CardData firstCard;
 	private bool isWaitingForServer;
-	private Button okButton;
+	public Button okButton;
 	int roundN = 1;
 
 	CardData PrepareCard(CardIds cardId)
@@ -159,8 +158,8 @@ public class GameLogic : NetworkBehaviour
 	// Start is called once before the first execution of Update after the MonoBehaviour is created
 	public IEnumerator Setup()
 	{
-		stage = Stages.Null;
 		localIndex = (int)NetworkManager.Singleton.LocalClientId;
+		Debug.Log($"Local index: {localIndex}");
 		cardSpawnPos = transform.GetChild(0).transform.GetChild(52);
 		m_PhysicalDeck = transform.GetChild(0).gameObject;
 		for (int i = 0; i < playerCount; i++)
@@ -208,8 +207,6 @@ public class GameLogic : NetworkBehaviour
 		m_PhysicalDeck.transform.position += new Vector3(0, m_cardThickness * 3, 0); m_PlayerIndex = 0;
 		playedPos = transform.GetChild(1);
 		initialPlayedPos = playedPos.position;
-
-		stage = Stages.setup;
 
 		if (IsHost)
 		{
@@ -293,7 +290,7 @@ public class GameLogic : NetworkBehaviour
 		CardIds[] tempCards = new CardIds[3];
 		for (int i = 0; i < 3; i++)
 		{
-			for (int j = 0; j < playerCount; j++)
+			for (int j = 0; j < m_Players.Count; j++)
 			{
 				tempCards[0] = m_ShuffledDeck.Pop();
 				tempCards[1] = m_ShuffledDeck.Pop();
@@ -333,10 +330,8 @@ public class GameLogic : NetworkBehaviour
 		m_Players[localIndex].PowerOnTop = PowerOnTop;
 		m_Players[localIndex].countRankOnTop = countRankOnTop;
 		m_Players[localIndex].playerCamera = Camera.main;
-		m_Players[localIndex].okButton = GameObject.FindAnyObjectByType<Button>();
+		m_Players[localIndex].okButton = okButton;
 		m_Players[localIndex].okButton.onClick.RemoveAllListeners();
-
-		stage = Stages.choosing;
 
 		if (IsHost)
 		{
@@ -370,8 +365,6 @@ public class GameLogic : NetworkBehaviour
 		while (!m_Players[localIndex].finishedChoosing)
 			yield return null;
 		m_Players[localIndex].okButton = null;
-
-		stage = Stages.givingCards;
 
 		if (IsHost)
 		{
@@ -438,7 +431,7 @@ public class GameLogic : NetworkBehaviour
 				}
 				for (int i = 0; i < netClickedObjects.Count; i++)
 					m_Players[m_PlayerIndex].addClickedCard((CardIds)netClickedObjects[i], list);
-				m_Players[m_PlayerIndex].okButton = GameObject.FindAnyObjectByType<Button>();
+				m_Players[m_PlayerIndex].okButton = okButton;
 				m_Players[m_PlayerIndex].okButton.onClick.RemoveAllListeners();
 				m_Players[m_PlayerIndex].PrepareChooseCards(false);
 				m_Players[m_PlayerIndex].okButton.onClick.Invoke();
@@ -478,7 +471,6 @@ public class GameLogic : NetworkBehaviour
 			while (m_PlayerIndex != netRemotePlayerIndex.Value && m_PlayerIndex < m_Players.Count)
 				yield return null;
 		}
-		stage = Stages.playing;
 		m_PlayerIndex = 0;
 		if (IsHost)
 		{
@@ -501,7 +493,7 @@ public class GameLogic : NetworkBehaviour
 			{
 				Debug.Log($"Playing frame: {Time.frameCount}");
 
-				m_Players[localIndex].okButton = GameObject.FindAnyObjectByType<Button>();
+				m_Players[localIndex].okButton = okButton;
 				m_Players[localIndex].okButton.onClick.RemoveAllListeners();
 				m_Players[localIndex].Play();
 
@@ -529,7 +521,7 @@ public class GameLogic : NetworkBehaviour
 				for (int i = 0; i < netClickedObjects.Count; i++)
 					m_Players[m_PlayerIndex].addClickedCard((CardIds)netClickedObjects[i]);
 				Debug.Log("Remote player net deck size: " + netClickedObjects.Count + " | " + Time.frameCount);
-				m_Players[m_PlayerIndex].okButton = GameObject.FindAnyObjectByType<Button>();
+				m_Players[m_PlayerIndex].okButton = okButton;
 				m_Players[m_PlayerIndex].okButton.onClick.RemoveAllListeners();
 				m_Players[m_PlayerIndex].Play(false);
 				m_Players[m_PlayerIndex].okButton.onClick.Invoke();
@@ -729,27 +721,28 @@ public class GameLogic : NetworkBehaviour
 	}
 
 	[ClientRpc]
-	public void StartClientRpc()
+	public void StartClientRpc(int _playerCount)
 	{
 		//Debug.Log("Client Started");
+		if (IsClient)
+			playerCount = _playerCount;
 		StartCoroutine(Setup());
 	}
 
-	void Start()
+	void Awake()
 	{
 		netShuffledDeck = new NetworkList<int>();
 		netClickedObjects = new NetworkList<int>();
 		netStage.Value = Stages.Null;
 		netRemotePlayerIndex = new NetworkVariable<int>();
 		Done = new NetworkVariable<int>(0);
+	}
 
-		okButton = GameObject.FindAnyObjectByType<Button>();
-		okButton.onClick.RemoveAllListeners();
-		okButton.onClick.AddListener(() =>
-		{
-			StartClientRpc();
-
-			okButton.onClick.RemoveAllListeners();
-		});
+	void Start()
+	{
+		if (IsHost)
+			playerCount = NetworkManager.Singleton.ConnectedClientsList.Count;
+		
+		StartClientRpc(playerCount);
 	}
 }
