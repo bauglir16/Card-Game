@@ -1,4 +1,3 @@
-using TMPro;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -6,23 +5,16 @@ using UnityEngine.UI;
 
 public class EnterGameScript : NetworkBehaviour
 {
-	Button myButton;
-	Image myImage;
-
-	private void Start()
-	{
-		myButton = GetComponent<Button>();
-		myImage = GetComponent<Image>();
-	}
 	// Start is called once before the first execution of Update after the MonoBehaviour is created
 	void Update()
 	{
-		
+		Button myButton = GetComponent<Button>();
+		Image myImage = GetComponent<Image>();
 		if (IsHost)
 		{
 			myButton.enabled = true;
 			myImage.enabled = true;
-			transform.GetChild(0).gameObject.GetComponent<TextMeshProUGUI>().enabled = true;
+			transform.GetChild(0).gameObject.SetActive(true);
 			myButton.onClick.AddListener(() =>
 			{
 				loadNextScene();
@@ -30,7 +22,7 @@ public class EnterGameScript : NetworkBehaviour
 			return;
 		}
 		myButton.onClick.RemoveAllListeners();
-		transform.GetChild(0).gameObject.GetComponent<TextMeshProUGUI>().enabled = false;
+		transform.GetChild(0).gameObject.SetActive(true);
 		myButton.enabled = false;
 		myImage.enabled = false;
 	}
@@ -46,6 +38,4 @@ public class EnterGameScript : NetworkBehaviour
 	{
 		SceneManager.LoadScene(1, LoadSceneMode.Single);
 	}
-
-	
 }
