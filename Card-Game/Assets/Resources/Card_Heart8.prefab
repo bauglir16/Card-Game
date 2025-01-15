@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 2541339631579870963}
   - component: {fileID: 7133255589453802696}
   - component: {fileID: 2161725076520193706}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Card_Heart8
   m_TagString: Untagged
   m_Icon: {fileID: 0}
