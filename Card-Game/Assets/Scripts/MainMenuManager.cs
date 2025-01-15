@@ -24,6 +24,7 @@ public class MainMenuManager : MonoBehaviour
     public void PlayButton()
     {
         PlayPanel.SetActive(true);
+        MainMenuPanel.SetActive(false);
     }
 
     public void ShowHowToPlay()
@@ -110,7 +111,7 @@ public class MainMenuManager : MonoBehaviour
     public void BackPlayPanel()
     {
         PlayPanel.SetActive(false);
-        MainMenuButtons.SetActive(true);
+        MainMenuPanel.SetActive(true);
     }
     public void BackOfflinePanel()
     {
