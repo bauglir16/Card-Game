@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 8974515950291265643}
   - component: {fileID: 2733431000978299193}
   - component: {fileID: 4380266343679382451}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Card_Spade3
   m_TagString: Untagged
   m_Icon: {fileID: 0}

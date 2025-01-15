@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 8419240296628726300}
   - component: {fileID: 6090598034427404440}
   - component: {fileID: 7717321182930091252}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Card_HeartJack
   m_TagString: Untagged
   m_Icon: {fileID: 0}

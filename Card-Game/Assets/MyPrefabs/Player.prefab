@@ -86,10 +86,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fb7260554340c37469fc3d0a06179b00, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cards: []
+  cardsAtHand: []
   first3Cards: []
   second3Cards: []
   third3Cards: []
+  clickedObjects: []
+  m_RendererSizeVector: {x: 0, y: 0, z: 0}
   handRightRadius: 3.43
   handForwardRadius: 1.552
   playerHeadHight: 0
@@ -102,6 +104,11 @@ MonoBehaviour:
   rotation: {x: 0, y: 0, z: 0}
   debugDistanceOfCards: 0
   playerCamera: {fileID: 0}
+  m_Phase: 0
+  okButton: {fileID: 0}
+  deckFinished: 0
+  RankOnTop: 0
+  countRankOnTop: 0
 --- !u!1 &2016171919818380552
 GameObject:
   m_ObjectHideFlags: 0
@@ -220,7 +227,7 @@ Transform:
   m_GameObject: {fileID: 5315982296511788885}
   serializedVersion: 2
   m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 0, y: 1.11, z: 3.279}
+  m_LocalPosition: {x: 0, y: 2.37, z: 3.279}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
