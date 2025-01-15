@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 4387698247598168147}
   - component: {fileID: 7924081273596023989}
   - component: {fileID: 5621048907090282043}
-  m_Layer: 6
+  m_Layer: 0
   m_Name: Card_DiamondJack
   m_TagString: Untagged
   m_Icon: {fileID: 0}

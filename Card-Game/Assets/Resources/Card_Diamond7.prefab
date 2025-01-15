@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 4099410161296076938}
   - component: {fileID: 2683439806269465077}
   - component: {fileID: -8311233489162048879}
-  m_Layer: 6
+  m_Layer: 0
   m_Name: Card_Diamond7
   m_TagString: Untagged
   m_Icon: {fileID: 0}

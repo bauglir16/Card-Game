@@ -1,30 +1,10 @@
-using System;
 using UnityEngine;
 
 public class CardId : MonoBehaviour
 {
-	public static int CalculatePower(int Rank)
-	{
-		int power;
-		switch (Rank)
-		{
-			case 1:
-				power = 14;
-				break;
-			case 2:
-			case 4:
-			case 10:
-				power = 15;
-				break;
-			default:
-				power = Rank;
-				break;
-		}
-		return power;
-	}
 }
 
-public enum CardIds : int
+public enum CardIds
 {
 	Null, ClubAce, Club2, Club3, Club4, Club5, Club6, Club7, Club8, Club9, Club10, ClubJack, ClubQueen, ClubKing,
 	DiamondAce, Diamond2, Diamond3, Diamond4, Diamond5, Diamond6, Diamond7, Diamond8, Diamond9, Diamond10, DiamondJack, DiamondQueen, DiamondKing,

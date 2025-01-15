@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 4265830787726780758}
   - component: {fileID: 5452748184435920294}
   - component: {fileID: 6072693215844519390}
-  m_Layer: 6
+  m_Layer: 0
   m_Name: Card_ClubJack
   m_TagString: Untagged
   m_Icon: {fileID: 0}

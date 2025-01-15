@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 4427353471190791116}
   - component: {fileID: 5344223118419970650}
   - component: {fileID: -4063221567899677976}
-  m_Layer: 6
+  m_Layer: 0
   m_Name: Card_Club10
   m_TagString: Untagged
   m_Icon: {fileID: 0}
