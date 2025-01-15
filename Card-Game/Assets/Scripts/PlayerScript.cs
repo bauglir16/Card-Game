@@ -42,11 +42,12 @@ public class PlayerScript : MonoBehaviour
 	public int PowerOnTop;
 	public int countRankOnTop = 0;
 	public bool finishedPlaying = false;
-	bool last3 = false;
+	public bool last3 = false;
 	public bool Out = false;
 	bool arranged = false;
+	public int id;
 
-	public bool finishedChoosing { get; private set; }
+	public bool finishedChoosing { get; set; }
 
 	void ArrangeCardsAtHand()
 	{
@@ -171,19 +172,19 @@ public class PlayerScript : MonoBehaviour
 		okButton.onClick.AddListener(() => {
 			int index;
 
-			if (last3)
-			{
-				if (clickedObjects.Count > 1)
-				{
-					//Debug.Log("Error. Only one card");
-					Time.timeScale = 0f;
-				}
+			//if (last3)
+			//{
+			//	if (clickedObjects.Count > 1)
+			//	{
+			//		//Debug.Log("Error. Only one card");
+			//		Time.timeScale = 0f;
+			//	}
 
-				index = third3Cards.IndexOf(clickedObjects[0]);
-				GiveCardAtHand(third3Cards[index]);
-				third3Cards.RemoveAt(index);
-				//Debug.Log("Player: Third3Cards");
-			}
+			//	index = third3Cards.IndexOf(clickedObjects[0]);
+			//	GiveCardAtHand(third3Cards[index]);
+			//	third3Cards.RemoveAt(index);
+			//	//Debug.Log("Player: Third3Cards");
+			//}
 
 			Debug.Log("Clicked size: " + clickedObjects.Count);
 			for (int i = 0; i < clickedObjects.Count; i++)
@@ -395,15 +396,7 @@ public class PlayerScript : MonoBehaviour
 
 	internal void Play(bool Internal = true)
 	{
-		if (cardsAtHand.Count == 0 && deckFinished && second3Cards.Count > 0)
-		{
-			for (int i = 0; i < 3; i++)
-			{
-				GiveCardAtHand(second3Cards[i]);
-			}
-			second3Cards.Clear();
-		}
-		else if (cardsAtHand.Count == 0 && deckFinished && second3Cards.Count == 0)
+		if (cardsAtHand.Count == 0 && deckFinished && second3Cards.Count == 0)
 		{
 			choosingList = third3Cards;
 			last3 = true;
@@ -412,10 +405,10 @@ public class PlayerScript : MonoBehaviour
 
 		//Debug.Log("Play");
 		if (Internal)
-		{
 			m_Phase = phases.playing;
-			finishedPlaying = false;
-		}
+
+		finishedChoosing = false;
+		finishedPlaying = false;
 		okButton.onClick.AddListener(() =>
 			{
 				if (last3)
@@ -423,9 +416,17 @@ public class PlayerScript : MonoBehaviour
 					GiveCardAtHand(clickedObjects[0]);
 					OnHoverExit(clickedObjects[0], true);
 					third3Cards.Remove(clickedObjects[0]);
-					clickedObjects.Clear();
 					choosingList = cardsAtHand;
+
+					//string log = "[";
+					//clickedObjects.ForEach(i => log += i.Id + ", ");
+					//log += "]";
+					//Debug.Log($"Clicked: {log} | {Time.frameCount}");
+
+					clickedObjects.Clear();
 					last3 = false;
+					finishedPlaying = false;
+					finishedChoosing = true;
 				}
 				else
 				{
@@ -434,6 +435,17 @@ public class PlayerScript : MonoBehaviour
 						OnHoverExit(clickedObjects[i], true);
 						cardsAtHand.Remove(clickedObjects[i]);
 					}
+
+					if (cardsAtHand.Count == 0 && deckFinished && second3Cards.Count > 0)
+					{
+						for (int i = 0; i < 3; i++)
+						{
+							GiveCardAtHand(second3Cards[i]);
+						}
+						second3Cards.Clear();
+					}
+
+					finishedChoosing = false;
 					finishedPlaying = true;
 					//Debug.Log(finishedPlaying);
 				}
@@ -444,11 +456,11 @@ public class PlayerScript : MonoBehaviour
 			});
 	}
 
-	internal void addClickedCard(CardIds cardId, List<CardIds> choosingList = null)
+	internal void addClickedCard(CardIds cardId, List<CardIds> _choosingList = null)
 	{
 		CardData card;
-		if (choosingList == null) 
-			card = cardsAtHand.Find(x => x.Id == cardId);
+		if (_choosingList == null) 
+			card = choosingList.Find(x => x.Id == cardId);
 		else
 		{
 			card = first3Cards.Find(x => x.Id == cardId);
