@@ -1904,7 +1904,7 @@ MonoBehaviour:
   RankOnTopText: {fileID: 8378619}
   countRankOnTopText: {fileID: 469094034}
   PowerOnTopText: {fileID: 444687576}
-  WinnerTxt: {fileID: 0}
+  WinnerTxt: {fileID: 642890186}
 --- !u!114 &2146060864
 MonoBehaviour:
   m_ObjectHideFlags: 0
