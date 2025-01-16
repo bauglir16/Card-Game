@@ -4,6 +4,7 @@ using System.Linq;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 public class GameLogic : NetworkBehaviour
 {
@@ -40,6 +41,10 @@ public class GameLogic : NetworkBehaviour
 	private bool isWaitingForServer;
 	public Button okButton;
 	int roundN = 1;
+	public TMP_Text RankOnTopText;
+	public TMP_Text countRankOnTopText;
+	public TMP_Text PowerOnTopText;
+	public TMP_Text WinnerTxt;
 
 	CardData PrepareCard(CardIds cardId)
 	{
@@ -151,6 +156,9 @@ public class GameLogic : NetworkBehaviour
 		}
 
 		m_PlayedCards.AddRange(player.clickedObjects);
+		RankOnTopText.SetText(RankOnTop.ToString());
+		countRankOnTopText.SetText(countRankOnTop.ToString());
+		PowerOnTopText.SetText(PowerOnTop.ToString());
 
 		Debug.Log($"Clicked cleared {Time.frameCount}");
 		player.clickedObjects.Clear();
@@ -318,6 +326,9 @@ public class GameLogic : NetworkBehaviour
 			PowerOnTop = firstCard.power;
 		playedPos.position += new Vector3(0, m_cardThickness, 0);
 
+		countRankOnTopText.SetText(countRankOnTop.ToString());
+		RankOnTopText.SetText(RankOnTop.ToString());
+		PowerOnTopText.SetText(PowerOnTop.ToString());
 		m_Players[localIndex].RankOnTop = RankOnTop;
 		m_Players[localIndex].PowerOnTop = PowerOnTop;
 		m_Players[localIndex].countRankOnTop = countRankOnTop;
@@ -480,6 +491,9 @@ public class GameLogic : NetworkBehaviour
 			m_Players[localIndex].RankOnTop = RankOnTop;
 			m_Players[localIndex].PowerOnTop = PowerOnTop;
 			m_Players[localIndex].countRankOnTop = countRankOnTop;
+			RankOnTopText.SetText(RankOnTop.ToString());
+			PowerOnTopText.SetText(PowerOnTop.ToString());
+			countRankOnTopText.SetText(countRankOnTop.ToString());
 			m_Players[localIndex].SetCamera();
 			if (localIndex == m_PlayerIndex)
 			{
@@ -565,6 +579,7 @@ public class GameLogic : NetworkBehaviour
 					{
 						winner = m_Players[m_PlayerIndex];
 						Debug.Log("Player " + m_PlayerIndex + " is the winner");
+						WinnerTxt.SetText("Player " + m_PlayerIndex + " is the winner");
 					}
 
 					playerIsOut = true;
@@ -581,6 +596,9 @@ public class GameLogic : NetworkBehaviour
 						RankOnTop = 0;
 						PowerOnTop = 0;
 						countRankOnTop = 0;
+						RankOnTopText.SetText(RankOnTop.ToString());
+						PowerOnTopText.SetText(PowerOnTop.ToString());
+						countRankOnTopText.SetText(countRankOnTop.ToString());
 						playAgain = false;
 					}
 				}
@@ -610,6 +628,9 @@ public class GameLogic : NetworkBehaviour
 					RankOnTop = 0;
 					PowerOnTop = 0;
 					countRankOnTop = 0;
+					RankOnTopText.SetText(RankOnTop.ToString());
+					PowerOnTopText.SetText(PowerOnTop.ToString());
+					countRankOnTopText.SetText(countRankOnTop.ToString());
 					m_PlayedCards.Clear();
 					playAgain = false;
 				}

@@ -1,3 +1,4 @@
+using TMPro;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -5,6 +6,7 @@ using UnityEngine.UI;
 
 public class EnterGameScript : NetworkBehaviour
 {
+	[SerializeField] TextMeshProUGUI textMeshProUGUI;
 	// Start is called once before the first execution of Update after the MonoBehaviour is created
 	void Update()
 	{
@@ -14,7 +16,7 @@ public class EnterGameScript : NetworkBehaviour
 		{
 			myButton.enabled = true;
 			myImage.enabled = true;
-			transform.GetChild(0).gameObject.SetActive(true);
+			textMeshProUGUI.gameObject.SetActive(true);
 			myButton.onClick.AddListener(() =>
 			{
 				loadNextScene();
@@ -22,7 +24,7 @@ public class EnterGameScript : NetworkBehaviour
 			return;
 		}
 		myButton.onClick.RemoveAllListeners();
-		transform.GetChild(0).gameObject.SetActive(true);
+		textMeshProUGUI.gameObject.SetActive(false);
 		myButton.enabled = false;
 		myImage.enabled = false;
 	}
