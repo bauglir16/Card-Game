@@ -579,7 +579,7 @@ public class GameLogic : NetworkBehaviour
 					{
 						winner = m_Players[m_PlayerIndex];
 						Debug.Log("Player " + m_PlayerIndex + " is the winner");
-						WinnerTxt.SetText("Player " + m_PlayerIndex + " is the winner");
+						StartCoroutine(ShowWinnerCoroutine(m_PlayerIndex));
 					}
 
 					playerIsOut = true;
@@ -674,6 +674,14 @@ public class GameLogic : NetworkBehaviour
 		loser = m_Players[0];
 		Debug.Log("Player " + loser.id + " is the whore");
 		NetworkManager.SceneManager.LoadScene("LobbyScene", UnityEngine.SceneManagement.LoadSceneMode.Single);
+	}
+
+	private IEnumerator ShowWinnerCoroutine(int m_PlayerIndex)
+	{
+		WinnerTxt.SetText("Player " + m_PlayerIndex + " is the winner");
+		yield return new WaitForSeconds(2f);
+		WinnerTxt.SetText("");
+		WinnerTxt.gameObject.SetActive(false);
 	}
 
 	void SetNetClickedObjects(int[] clickedObjects)
