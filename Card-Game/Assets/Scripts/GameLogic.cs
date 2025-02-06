@@ -22,6 +22,7 @@ public class GameLogic : NetworkBehaviour
 	GameObject m_PhysicalDeck;
 	float m_cardThickness;
 	public int m_PlayerIndex;
+	int startingIndex;
 	enum Stages { Null, setup, choosing, givingCards, playing }
 	public int RankOnTop;
 	public int countRankOnTop = 0;
@@ -45,6 +46,7 @@ public class GameLogic : NetworkBehaviour
 	public TMP_Text countRankOnTopText;
 	public TMP_Text PowerOnTopText;
 	public TMP_Text WinnerTxt;
+	public GameObject indexPointer;
 
 	CardData PrepareCard(CardIds cardId)
 	{
@@ -477,6 +479,8 @@ public class GameLogic : NetworkBehaviour
 		while (m_Players.Count > 1)
 		{
 			Debug.Log($"=================================ROUND {roundN}=================================");
+			m_PlayerIndex = startingIndex;
+			rotateIndexPointer();
 
 			for (int i = 0; i < m_Players.Count; i++)
 			{
@@ -613,6 +617,7 @@ public class GameLogic : NetworkBehaviour
 					}
 
 					m_PlayerIndex = (m_PlayerIndex + 1) % m_Players.Count();
+					rotateIndexPointer();
 
 					if (m_Players.Count < playerCount)
 						Debug.Log(m_PlayerIndex);
@@ -676,6 +681,12 @@ public class GameLogic : NetworkBehaviour
 		NetworkManager.SceneManager.LoadScene("LobbyScene", UnityEngine.SceneManagement.LoadSceneMode.Single);
 	}
 
+	private void rotateIndexPointer()
+	{
+		Vector3 direction = new Vector3(m_Players[m_PlayerIndex].transform.position.x, indexPointer.transform.position.y, m_Players[m_PlayerIndex].transform.position.z);
+		indexPointer.transform.LookAt(direction);
+	}
+
 	private IEnumerator ShowWinnerCoroutine(int m_PlayerIndex)
 	{
 		WinnerTxt.SetText("Player " + m_PlayerIndex + " is the winner");
@@ -719,11 +730,14 @@ public class GameLogic : NetworkBehaviour
 	}
 
 	[ClientRpc]
-	public void StartClientRpc(int _playerCount)
+	public void StartClientRpc(int _playerCount, int _startingIndex)
 	{
 		//Debug.Log("Client Started");
 		if (IsClient)
+		{
+			startingIndex = _startingIndex;
 			playerCount = _playerCount;
+		}
 		StartCoroutine(Setup());
 	}
 
@@ -738,10 +752,12 @@ public class GameLogic : NetworkBehaviour
 
 	void Start()
 	{
+		WinnerTxt.SetText("");
 		if (IsHost)
 		{
 			playerCount = NetworkManager.Singleton.ConnectedClientsList.Count;
-			StartClientRpc(playerCount);
+			startingIndex = Random.Range(0, playerCount);
+			StartClientRpc(playerCount, startingIndex);
 		}
 	}
 }
