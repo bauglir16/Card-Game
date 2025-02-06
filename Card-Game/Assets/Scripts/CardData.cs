@@ -1,3 +1,4 @@
+using TreeEditor;
 using UnityEngine;
 
 public class CardData : MonoBehaviour
@@ -9,6 +10,9 @@ public class CardData : MonoBehaviour
 	public Renderer m_Renderer;
 	public BoxCollider m_Collider;
 	public MeshFilter m_MeshFilter;
+	public Vector3 targetPos = new Vector3(-1, -1, -1);
+	public float speed;
+
 	public void Set(CardIds p_Id)
 	{
 		gameObject.layer = 6;
@@ -37,5 +41,18 @@ public class CardData : MonoBehaviour
 		m_Renderer = m_CardModel.GetComponent<Renderer>();
 		m_Collider = m_CardModel.GetComponent<BoxCollider>();
 		m_MeshFilter = m_CardModel.GetComponent<MeshFilter>();
+	}
+
+	public void SetTargetPosition(Vector3 pos)
+	{
+		targetPos = pos;
+		speed = Vector3.Distance(transform.position, targetPos) * 3;
+	}
+
+	public void Update()
+	{
+		if (transform.position == targetPos || targetPos.Equals(new Vector3(-1, -1, -1)))
+			return;
+		transform.position = Vector3.MoveTowards(transform.position, targetPos, speed * Time.deltaTime);
 	}
 }

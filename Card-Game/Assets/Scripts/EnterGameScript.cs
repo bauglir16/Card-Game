@@ -6,30 +6,19 @@ using UnityEngine.UI;
 
 public class EnterGameScript : NetworkBehaviour
 {
-	[SerializeField] TextMeshProUGUI textMeshProUGUI;
 	// Start is called once before the first execution of Update after the MonoBehaviour is created
+	[SerializeField] GameObject enterButton;
 	void Update()
 	{
-		Button myButton = GetComponent<Button>();
-		Image myImage = GetComponent<Image>();
-		if (IsHost)
+		if (IsHost && NetworkManager.Singleton.ConnectedClientsList.Count > 1)
 		{
-			myButton.enabled = true;
-			myImage.enabled = true;
-			textMeshProUGUI.gameObject.SetActive(true);
-			myButton.onClick.AddListener(() =>
-			{
-				loadNextScene();
-			});
+			enterButton.SetActive(true);
 			return;
 		}
-		myButton.onClick.RemoveAllListeners();
-		textMeshProUGUI.gameObject.SetActive(false);
-		myButton.enabled = false;
-		myImage.enabled = false;
+		enterButton.SetActive(false);
 	}
 
-	void loadNextScene()
+	public void loadNextScene()
 	{
 		//loadNextSceneClientRpc();
 		NetworkManager.SceneManager.LoadScene("GameScene", LoadSceneMode.Single);

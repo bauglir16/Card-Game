@@ -72,8 +72,8 @@ public class PlayerScript : MonoBehaviour
 		{
 			cardsAtHand[sideCardsNumber].transform.rotation = transform.rotation * Quaternion.Euler(0, 180f, 0);
 
-			//cardsAtHand[sideCardsNumber].transform.LookAt(new Vector3(cardsAtHand[sideCardsNumber].transform.position.x, transform.position.y + playerHeadHight, transform.position.z));
-			cardsAtHand[sideCardsNumber].transform.position = transform.position + transform.forward * (handForwardRadius - zDistanceOfCards * 3 * sideCardsNumber);
+			MoveCard(cardsAtHand[sideCardsNumber], transform.position + transform.forward * (handForwardRadius - zDistanceOfCards * 3 * sideCardsNumber));
+			//cardsAtHand[sideCardsNumber].transform.position = transform.position + transform.forward * (handForwardRadius - zDistanceOfCards * 3 * sideCardsNumber);
 			if (cardsAtHand.Count == 1) return;
 			xOffestMultiplier = 1;
 		}
@@ -82,20 +82,29 @@ public class PlayerScript : MonoBehaviour
 		cardsAtHand[cardsAtHand.Count - sideCardsNumber].transform.rotation = transform.rotation * Quaternion.Euler(0, 180f, 0);
 
 		toTheRight = transform.right * (xDistanceOfCards * xOffestMultiplier);
-		cardsAtHand[sideCardsNumber - 1].transform.position = transform.position - toTheRight + transform.forward * (handForwardRadius - (zDistanceOfCards * 3 * (sideCardsNumber - 1)));
-		cardsAtHand[cardsAtHand.Count - sideCardsNumber].transform.position = transform.position + toTheRight + transform.forward * (handForwardRadius - (zDistanceOfCards * 3 * (cardsAtHand.Count - sideCardsNumber)));
+		MoveCard(cardsAtHand[sideCardsNumber - 1], transform.position - toTheRight + transform.forward * (handForwardRadius - (zDistanceOfCards * 3 * (sideCardsNumber - 1))));
+		MoveCard(cardsAtHand[cardsAtHand.Count - sideCardsNumber], transform.position + toTheRight + transform.forward * (handForwardRadius - (zDistanceOfCards * 3 * (cardsAtHand.Count - sideCardsNumber))));
+		//cardsAtHand[sideCardsNumber - 1].transform.position = transform.position - toTheRight + transform.forward * (handForwardRadius - (zDistanceOfCards * 3 * (sideCardsNumber - 1)));
+		//cardsAtHand[cardsAtHand.Count - sideCardsNumber].transform.position = transform.position + toTheRight + transform.forward * (handForwardRadius - (zDistanceOfCards * 3 * (cardsAtHand.Count - sideCardsNumber)));
 		int iterationCounter = 1;
 		for (int i = sideCardsNumber - 2, j = cardsAtHand.Count - sideCardsNumber + 1; i >= 0 && j < cardsAtHand.Count; i--, j++)
 		{
 			cardsAtHand[i].transform.rotation = transform.rotation * Quaternion.Euler(0, 180f, 0);
 			cardsAtHand[j].transform.rotation = transform.rotation * Quaternion.Euler(0, 180f, 0);
 			toTheRight = transform.right * (xDistanceOfCards * iterationCounter + xDistanceOfCards * xOffestMultiplier);
-			cardsAtHand[i].transform.position = transform.position - toTheRight + transform.forward * (handForwardRadius - zDistanceOfCards * 3 * i);
-			cardsAtHand[j].transform.position = transform.position + toTheRight + transform.forward * (handForwardRadius - zDistanceOfCards * 3 * j);
+			MoveCard(cardsAtHand[i], transform.position - toTheRight + transform.forward * (handForwardRadius - zDistanceOfCards * 3 * i));
+			MoveCard(cardsAtHand[j], transform.position + toTheRight + transform.forward * (handForwardRadius - zDistanceOfCards * 3 * j));
+			//cardsAtHand[i].transform.position = transform.position - toTheRight + transform.forward * (handForwardRadius - zDistanceOfCards * 3 * i);
+			//cardsAtHand[j].transform.position = transform.position + toTheRight + transform.forward * (handForwardRadius - zDistanceOfCards * 3 * j);
 			iterationCounter++;
 		}
 
 		arranged = true;
+	}
+
+	private void MoveCard(CardData cardData, Vector3 newPos)
+	{
+		cardData.SetTargetPosition(newPos);
 	}
 
 	public void GiveFirst3Cards(CardData card1, CardData card2, CardData card3)
