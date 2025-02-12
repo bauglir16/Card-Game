@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Reflection;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -13,10 +15,10 @@ public class PlayerScript : MonoBehaviour
 	public List<CardData> first3Cards;
 	public List<CardData> second3Cards;
 	public List<CardData> third3Cards;
-	public Transform[][] downCards = new Transform[3][];
+	public Transform[][] downCardsTransforms = new Transform[3][];
+	public Transform downCardsObject;
 	public List<CardData> clickedObjects = new List<CardData>();
 	public List<CardData> choosingList = new List<CardData>();
-	Transform m_HandPivot;
 	Vector3 m_ColliderSizeVector;
 	public Vector3 m_RendererSizeVector;
 	public float handRightRadius;
@@ -30,7 +32,6 @@ public class PlayerScript : MonoBehaviour
 	public Vector3 right;
 	public Vector3 rotation;
 	public float debugDistanceOfCards;
-	//Mouse m_Mouse = Mouse.current;
 	public Camera playerCamera; // Assign the player's camera in the Inspector
 	private CardData lastHoveredObject;
 	private Transform BehindCameraPos, AboveCardsCameraPos;
@@ -46,6 +47,7 @@ public class PlayerScript : MonoBehaviour
 	public bool Out = false;
 	bool arranged = false;
 	public int id;
+	private int cardLimit;
 
 	public bool finishedChoosing { get; set; }
 
@@ -54,6 +56,8 @@ public class PlayerScript : MonoBehaviour
 		if (cardsAtHand.Count == 0 || arranged) return;
 
 		cardsAtHand.Sort((x, y) => x.Rank - y.Rank);
+
+		Quaternion newRot = transform.rotation * Quaternion.Euler(0, 180f, 0);
 
 		m_ColliderSizeVector = transform.InverseTransformVector(cardsAtHand[0].m_Collider.bounds.size);
 		m_RendererSizeVector = cardsAtHand[0].m_MeshFilter.mesh.bounds.size;
@@ -70,52 +74,47 @@ public class PlayerScript : MonoBehaviour
 
 		if (cardsAtHand.Count % 2 != 0) //Odd number of cards
 		{
-			cardsAtHand[sideCardsNumber].transform.rotation = transform.rotation * Quaternion.Euler(0, 180f, 0);
+			//cardsAtHand[sideCardsNumber].transform.rotation = transform.rotation * Quaternion.Euler(0, 180f, 0);
 
-			MoveCard(cardsAtHand[sideCardsNumber], transform.position + transform.forward * (handForwardRadius - zDistanceOfCards * 3 * sideCardsNumber));
-			//cardsAtHand[sideCardsNumber].transform.position = transform.position + transform.forward * (handForwardRadius - zDistanceOfCards * 3 * sideCardsNumber);
+			MoveCard(cardsAtHand[sideCardsNumber], transform.position + transform.forward * (handForwardRadius - zDistanceOfCards * 3 * sideCardsNumber), newRot);
 			if (cardsAtHand.Count == 1) return;
 			xOffestMultiplier = 1;
 		}
 
-		cardsAtHand[sideCardsNumber - 1].transform.rotation = transform.rotation * Quaternion.Euler(0, 180f, 0);
-		cardsAtHand[cardsAtHand.Count - sideCardsNumber].transform.rotation = transform.rotation * Quaternion.Euler(0, 180f, 0);
+		//cardsAtHand[sideCardsNumber - 1].transform.rotation = transform.rotation * Quaternion.Euler(0, 180f, 0);
+		//cardsAtHand[cardsAtHand.Count - sideCardsNumber].transform.rotation = transform.rotation * Quaternion.Euler(0, 180f, 0);
 
 		toTheRight = transform.right * (xDistanceOfCards * xOffestMultiplier);
-		MoveCard(cardsAtHand[sideCardsNumber - 1], transform.position - toTheRight + transform.forward * (handForwardRadius - (zDistanceOfCards * 3 * (sideCardsNumber - 1))));
-		MoveCard(cardsAtHand[cardsAtHand.Count - sideCardsNumber], transform.position + toTheRight + transform.forward * (handForwardRadius - (zDistanceOfCards * 3 * (cardsAtHand.Count - sideCardsNumber))));
-		//cardsAtHand[sideCardsNumber - 1].transform.position = transform.position - toTheRight + transform.forward * (handForwardRadius - (zDistanceOfCards * 3 * (sideCardsNumber - 1)));
-		//cardsAtHand[cardsAtHand.Count - sideCardsNumber].transform.position = transform.position + toTheRight + transform.forward * (handForwardRadius - (zDistanceOfCards * 3 * (cardsAtHand.Count - sideCardsNumber)));
+		MoveCard(cardsAtHand[sideCardsNumber - 1], transform.position - toTheRight + transform.forward * (handForwardRadius - (zDistanceOfCards * 3 * (sideCardsNumber - 1))), newRot);
+		MoveCard(cardsAtHand[cardsAtHand.Count - sideCardsNumber], transform.position + toTheRight + transform.forward * (handForwardRadius - (zDistanceOfCards * 3 * (cardsAtHand.Count - sideCardsNumber))), newRot);
 		int iterationCounter = 1;
 		for (int i = sideCardsNumber - 2, j = cardsAtHand.Count - sideCardsNumber + 1; i >= 0 && j < cardsAtHand.Count; i--, j++)
 		{
-			cardsAtHand[i].transform.rotation = transform.rotation * Quaternion.Euler(0, 180f, 0);
-			cardsAtHand[j].transform.rotation = transform.rotation * Quaternion.Euler(0, 180f, 0);
+			//cardsAtHand[i].transform.rotation = transform.rotation * Quaternion.Euler(0, 180f, 0);
+			//cardsAtHand[j].transform.rotation = transform.rotation * Quaternion.Euler(0, 180f, 0);
 			toTheRight = transform.right * (xDistanceOfCards * iterationCounter + xDistanceOfCards * xOffestMultiplier);
-			MoveCard(cardsAtHand[i], transform.position - toTheRight + transform.forward * (handForwardRadius - zDistanceOfCards * 3 * i));
-			MoveCard(cardsAtHand[j], transform.position + toTheRight + transform.forward * (handForwardRadius - zDistanceOfCards * 3 * j));
-			//cardsAtHand[i].transform.position = transform.position - toTheRight + transform.forward * (handForwardRadius - zDistanceOfCards * 3 * i);
-			//cardsAtHand[j].transform.position = transform.position + toTheRight + transform.forward * (handForwardRadius - zDistanceOfCards * 3 * j);
+			MoveCard(cardsAtHand[i], transform.position - toTheRight + transform.forward * (handForwardRadius - zDistanceOfCards * 3 * i), newRot);
+			MoveCard(cardsAtHand[j], transform.position + toTheRight + transform.forward * (handForwardRadius - zDistanceOfCards * 3 * j), newRot);
 			iterationCounter++;
 		}
 
 		arranged = true;
 	}
 
-	private void MoveCard(CardData cardData, Vector3 newPos)
+	private void MoveCard(CardData cardData, Vector3 newPos, Quaternion newRot)
 	{
-		cardData.SetTargetPosition(newPos);
+		cardData.SetTargetPositionAndRotation(newPos, newRot);
 	}
 
 	public void GiveFirst3Cards(CardData card1, CardData card2, CardData card3)
 	{
 		if (card1 == null) Debug.Log("Null");
-		card1.transform.position = downCards[2][0].transform.position;
-		card1.transform.rotation = downCards[2][0].transform.rotation;
-		card2.transform.position = downCards[2][1].transform.position;
-		card2.transform.rotation = downCards[2][1].transform.rotation;
-		card3.transform.position = downCards[2][2].transform.position;
-		card3.transform.rotation = downCards[2][2].transform.rotation;
+		card1.transform.position = downCardsTransforms[2][0].position;
+		card1.transform.rotation = downCardsTransforms[2][0].rotation;
+		card2.transform.position = downCardsTransforms[2][1].position;
+		card2.transform.rotation = downCardsTransforms[2][1].rotation;
+		card3.transform.position = downCardsTransforms[2][2].position;
+		card3.transform.rotation = downCardsTransforms[2][2].rotation;
 
 		third3Cards.Add(card1);
 		third3Cards.Add(card2);
@@ -126,12 +125,12 @@ public class PlayerScript : MonoBehaviour
 
 	public void GiveSecond3Cards(CardData card1, CardData card2, CardData card3)
 	{
-		card1.transform.position = downCards[1][0].transform.position;
-		card1.transform.rotation = downCards[1][0].transform.rotation;
-		card2.transform.position = downCards[1][1].transform.position;
-		card2.transform.rotation = downCards[1][1].transform.rotation;
-		card3.transform.position = downCards[1][2].transform.position;
-		card3.transform.rotation = downCards[1][2].transform.rotation;
+		card1.transform.position = downCardsTransforms[1][0].position;
+		card1.transform.rotation = downCardsTransforms[1][0].rotation;
+		card2.transform.position = downCardsTransforms[1][1].position;
+		card2.transform.rotation = downCardsTransforms[1][1].rotation;
+		card3.transform.position = downCardsTransforms[1][2].position;
+		card3.transform.rotation = downCardsTransforms[1][2].rotation;
 
 		second3Cards.Add(card1);
 		second3Cards.Add(card2);
@@ -140,12 +139,12 @@ public class PlayerScript : MonoBehaviour
 
 	public void GiveThird3Cards(CardData card1, CardData card2, CardData card3)
 	{
-		card1.transform.position = downCards[0][0].transform.position;
-		card1.transform.rotation = downCards[0][0].transform.rotation;
-		card2.transform.position = downCards[0][1].transform.position;
-		card2.transform.rotation = downCards[0][1].transform.rotation;
-		card3.transform.position = downCards[0][2].transform.position;
-		card3.transform.rotation = downCards[0][2].transform.rotation;
+		card1.transform.position = downCardsTransforms[0][0].position;
+		card1.transform.rotation = downCardsTransforms[0][0].rotation;
+		card2.transform.position = downCardsTransforms[0][1].position;
+		card2.transform.rotation = downCardsTransforms[0][1].rotation;
+		card3.transform.position = downCardsTransforms[0][2].position;
+		card3.transform.rotation = downCardsTransforms[0][2].rotation;
 
 		first3Cards.Add(card1);
 		first3Cards.Add(card2);
@@ -167,6 +166,30 @@ public class PlayerScript : MonoBehaviour
 		ArrangeCardsAtHand();
 	}
 
+	public void chooseCardsToExchange(PlayerScript otherPlayer)
+	{
+		Debug.Log($"Other player index: {otherPlayer.id}");
+		clickedObjects.Clear();
+		choosingList.Clear();
+		cardLimit = 2;
+		okButton.enabled = false;
+		finishedChoosing = false;
+		choosingList.AddRange(otherPlayer.first3Cards);
+		choosingList.AddRange(otherPlayer.second3Cards);
+		playerCamera.transform.SetPositionAndRotation(otherPlayer.AboveCardsCameraPos.position, otherPlayer.AboveCardsCameraPos.rotation);
+		m_Phase = phases.choosing;
+
+		okButton.onClick.AddListener(() => {
+			//Debug.Log("Clicked size: " + clickedObjects.Count);
+
+			OnHoverExit(clickedObjects[0]);
+			OnHoverExit(clickedObjects[1]);
+			SetCamera();
+			m_Phase = phases.Null;
+			finishedChoosing = true;
+		});
+	}
+
 	public void PrepareChooseCards(bool Internal = true)
 	{
 		if (Internal)
@@ -175,25 +198,14 @@ public class PlayerScript : MonoBehaviour
 			okButton.enabled = false;
 			choosingList.AddRange(first3Cards);
 			choosingList.AddRange(second3Cards);
+			cardLimit = 3;
+			finishedChoosing = false;
 			m_Phase = phases.choosing;
 		}
 		Debug.Log("Button is " + ((okButton == null) ? "" : "not ") + "null");
 		okButton.onClick.AddListener(() => {
+			Debug.Log("Listener triggered");
 			int index;
-
-			//if (last3)
-			//{
-			//	if (clickedObjects.Count > 1)
-			//	{
-			//		//Debug.Log("Error. Only one card");
-			//		Time.timeScale = 0f;
-			//	}
-
-			//	index = third3Cards.IndexOf(clickedObjects[0]);
-			//	GiveCardAtHand(third3Cards[index]);
-			//	third3Cards.RemoveAt(index);
-			//	//Debug.Log("Player: Third3Cards");
-			//}
 
 			Debug.Log("Clicked size: " + clickedObjects.Count);
 			for (int i = 0; i < clickedObjects.Count; i++)
@@ -220,7 +232,7 @@ public class PlayerScript : MonoBehaviour
 			Debug.Log("Second hand size: " + second3Cards.Count);
 			for (int i = 0; i < second3Cards.Count; i++)
 			{
-				second3Cards[i].transform.SetPositionAndRotation(downCards[1][i].position, downCards[1][i].rotation);
+				second3Cards[i].transform.SetPositionAndRotation(downCardsTransforms[1][i].position, downCardsTransforms[1][i].rotation);
 			}
 			first3Cards.Clear();
 			OnHoverExit(cardsAtHand[0]);
@@ -229,7 +241,7 @@ public class PlayerScript : MonoBehaviour
 			if (Internal) SetCamera();
 			finishedChoosing = true;
 		});
-		Debug.Log($"Event listener count: {okButton.onClick.GetPersistentEventCount()}");
+		//Debug.Log($"Event listener count: {okButton.onClick.GetPersistentEventCount()}");
 	}
 
 	// Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -242,18 +254,19 @@ public class PlayerScript : MonoBehaviour
 
 		for (int i = 0; i < 3; i++)
 		{
-			downCards[i] = new Transform[3];
-			downCards[i][0] = transform.GetChild(i * 3);
-			downCards[i][1] = transform.GetChild(i * 3 + 1);
-			downCards[i][2] = transform.GetChild(i * 3 + 2);
+			downCardsTransforms[i] = new Transform[3];
+			downCardsTransforms[i][0] = downCardsObject.GetChild(i * 3);
+			downCardsTransforms[i][1] = downCardsObject.GetChild(i * 3 + 1);
+			downCardsTransforms[i][2] = downCardsObject.GetChild(i * 3 + 2);
 		}
 		third3Cards = new List<CardData>();
 		second3Cards = new List<CardData>();
 		first3Cards = new List<CardData>();
 
-		BehindCameraPos = transform.GetChild(9);
-		AboveCardsCameraPos = transform.GetChild(10);
+		BehindCameraPos = transform.GetChild(0);
+		AboveCardsCameraPos = downCardsObject.GetChild(downCardsObject.childCount - 1);
 		RankOnTop = 0;
+		cardLimit = 0;
 		finishedChoosing = false;
 	}
 
@@ -362,12 +375,12 @@ public class PlayerScript : MonoBehaviour
 		{
 			case phases.choosing:
 				//PrepareChooseCards();
-				HoverCards(3);
+				HoverCards(cardLimit);
 				break;
 			case phases.playing:
 				if (last3)
 				{
-					HoverCards(1);
+					HoverCards(cardLimit);
 					break;
 				}
 				ArrangeCardsAtHand();
@@ -405,12 +418,18 @@ public class PlayerScript : MonoBehaviour
 
 	internal void Play(bool Internal = true)
 	{
+
 		if (cardsAtHand.Count == 0 && deckFinished && second3Cards.Count == 0)
 		{
 			choosingList = third3Cards;
+			cardLimit = 1;
 			last3 = true;
 		}
-		else if (cardsAtHand.Count > 0) choosingList = cardsAtHand;
+		else if (cardsAtHand.Count > 0) 
+		{ 
+			choosingList = cardsAtHand;
+			cardLimit = 4;
+		}
 
 		//Debug.Log("Play");
 		if (Internal)
@@ -507,5 +526,41 @@ public class PlayerScript : MonoBehaviour
 	internal void SetCamera()
 	{
 		playerCamera.transform.SetPositionAndRotation(BehindCameraPos.position, BehindCameraPos.rotation);
+	}
+
+	public Tuple<int, int> getDownCardPos(CardIds card)
+	{
+		int index = first3Cards.FindIndex(x => x.Id == card);
+		if (index != -1)
+			return Tuple.Create(0, index);
+
+		index = second3Cards.FindIndex(x => x.Id == card);
+		if (index != -1)
+			return Tuple.Create(1, index);
+
+		return null;
+	}
+
+	public CardData getDownCard(int yIndex, int xIndex)
+	{
+		if (yIndex > 2 || yIndex < 0) return null;
+
+		if (yIndex == 0)
+			return first3Cards[xIndex];
+		else
+			return second3Cards[xIndex];
+	}
+
+	public void setDownCard(CardData card, int yIndex, int xIndex)
+	{
+		if (yIndex > 1 || yIndex < 0) return;
+
+		if (yIndex == 0)
+			first3Cards[xIndex] = card;
+		else
+			second3Cards[xIndex] = card;
+
+		card.transform.position = downCardsTransforms[yIndex][xIndex].position;
+		card.transform.rotation = downCardsTransforms[yIndex][xIndex].rotation;
 	}
 }

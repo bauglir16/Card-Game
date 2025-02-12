@@ -5,6 +5,7 @@ using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using System;
 
 public class GameLogic : NetworkBehaviour
 {
@@ -15,7 +16,7 @@ public class GameLogic : NetworkBehaviour
 	Stack<CardIds> m_ShuffledDeck;
 	public int playerCount;
 	public float playerRadius;
-	PlayerScript winner, loser;
+	int winnerIndex, loserIndex;
 	public List<PlayerScript> m_Players = new List<PlayerScript>();
 	Transform cardSpawnPos, playedPos;
 	Vector3 initialPlayedPos;
@@ -23,7 +24,7 @@ public class GameLogic : NetworkBehaviour
 	float m_cardThickness;
 	public int m_PlayerIndex;
 	int startingIndex;
-	enum Stages { Null, setup, choosing, givingCards, playing }
+	enum Stages { Null, setup, exchanging, choosing, givingCards, playing }
 	public int RankOnTop;
 	public int countRankOnTop = 0;
 	public int PowerOnTop;
@@ -146,8 +147,8 @@ public class GameLogic : NetworkBehaviour
 		for (int i = 0; i < player.clickedObjects.Count; i++)
 		{
 			//player.clickedObjects[i].transform.SetPositionAndRotation(playedPos.transform.position, playedPos.transform.rotation);
-			player.clickedObjects[i].transform.rotation = playedPos.transform.rotation;
-			player.clickedObjects[i].SetTargetPosition(playedPos.transform.position);
+			//player.clickedObjects[i].transform.rotation = playedPos.transform.rotation;
+			player.clickedObjects[i].SetTargetPositionAndRotation(playedPos.transform.position, playedPos.transform.rotation, true, true);
 			playedPos.transform.localPosition += new Vector3(0, m_cardThickness, 0);
 		}
 
@@ -284,7 +285,7 @@ public class GameLogic : NetworkBehaviour
 		{
 			while (m_InitialDeck.Count > 0)
 			{
-				randomCard = Random.Range(0, m_InitialDeck.Count);
+				randomCard = UnityEngine.Random.Range(0, m_InitialDeck.Count);
 				netShuffledDeck.Add((int)m_InitialDeck[randomCard]);
 				m_InitialDeck.RemoveAt(randomCard);
 			}
@@ -342,7 +343,16 @@ public class GameLogic : NetworkBehaviour
 		//DEAL CARDS AND "PLAY" FIRST CARD
 		prepareGame();
 
+
+		if (winnerIndex != -1)
+		{
+			yield return StartCoroutine(waitForSync(Stages.exchanging));
+			yield return StartCoroutine(exchnageCards());
+		}
+
 		yield return StartCoroutine(waitForSync(Stages.choosing));
+		if (IsHost && winnerIndex != -1) 
+			netClickedObjects.Clear();
 
 		//LET LOCAL PLAYER CHOOSE STARTING CARDS
 		m_Players[localIndex].PrepareChooseCards();
@@ -375,9 +385,65 @@ public class GameLogic : NetworkBehaviour
 		//START PLAYING
 		yield return StartCoroutine(GameLoop());
 		
-		loser = m_Players[0];
-		Debug.Log("Player " + loser.id + " is the whore");
+		loserIndex = m_Players[0].id;
+		Debug.Log("Player " + loserIndex + " is the whore");
+		PlayerPrefs.SetInt("loserIndex", loserIndex);
+		PlayerPrefs.Save();
 		NetworkManager.SceneManager.LoadScene("LobbyScene", UnityEngine.SceneManagement.LoadSceneMode.Single);
+	}
+
+	private IEnumerator exchnageCards()
+	{
+		if (localIndex == winnerIndex)
+		{
+			List<int> selectedCards = new List<int>();
+			m_Players[localIndex].chooseCardsToExchange(m_Players[localIndex]);
+			while (!m_Players[localIndex].finishedChoosing)
+				yield return null;
+			okButton.onClick.RemoveAllListeners();
+			selectedCards.AddRange(m_Players[localIndex].ClickedObjectsIdsAsInts());
+			m_Players[localIndex].chooseCardsToExchange(m_Players[loserIndex]);
+			while (!m_Players[localIndex].finishedChoosing)
+				yield return null;
+			okButton.onClick.RemoveAllListeners();
+			selectedCards.AddRange(m_Players[localIndex].ClickedObjectsIdsAsInts());
+
+			if (!IsHost)
+				eventSetClickedObjectsServerRpc(selectedCards.ToArray(), localIndex);
+
+			else
+				SetNetClickedObjects(selectedCards.ToArray());
+		}
+		else
+		{
+			yield return StartCoroutine(waitForData());
+		}
+
+		List<CardData> cardsToExchange = new List<CardData>(4);
+		List<Tuple<int, int>> cardsPos = new List<Tuple<int, int>>(4);
+		int i = 0;
+		for (; i < 2; i++)
+		{
+			cardsPos.Add(m_Players[winnerIndex].getDownCardPos((CardIds)netClickedObjects[i]));
+			cardsToExchange.Add(m_Players[winnerIndex].getDownCard(cardsPos[i].Item1, cardsPos[i].Item2));
+		}
+		Debug.Log($"cardPos l: {cardsPos.Count} | cardsToExchange l: {cardsToExchange.Count}");
+		for (; i < 4; i++)
+		{
+			cardsPos.Add(m_Players[loserIndex].getDownCardPos((CardIds)netClickedObjects[i]));
+			cardsToExchange.Add(m_Players[loserIndex].getDownCard(cardsPos[i].Item1, cardsPos[i].Item2));
+		}
+
+		Debug.Log($"cardPos l: {cardsPos.Count} | cardsToExchange l: {cardsToExchange.Count}");
+
+		for (i = 0; i < 2; i++)
+		{
+			m_Players[loserIndex].setDownCard(cardsToExchange[i], cardsPos[cardsPos.Count - 1 - i].Item1, cardsPos[cardsPos.Count - 1 - i].Item2);
+		}
+		for (; i < 4; i++)
+		{
+			m_Players[winnerIndex].setDownCard(cardsToExchange[i], cardsPos[cardsPos.Count - 1 - i].Item1, cardsPos[cardsPos.Count - 1 - i].Item2);
+		}
 	}
 
 	private IEnumerator GameLoop()
@@ -479,8 +545,9 @@ public class GameLogic : NetworkBehaviour
 		{
 			if (m_Players.Count == playerCount)
 			{
-				winner = m_Players[m_PlayerIndex];
+				winnerIndex = m_Players[m_PlayerIndex].id;
 				Debug.Log("Player " + m_PlayerIndex + " is the winner");
+				PlayerPrefs.SetInt("winnerIndex", m_PlayerIndex);
 				StartCoroutine(ShowWinnerCoroutine(m_PlayerIndex));
 			}
 
@@ -709,7 +776,7 @@ public class GameLogic : NetworkBehaviour
 	}
 
 	[ClientRpc]
-	public void StartClientRpc(int _playerCount, int _startingIndex)
+	public void StartClientRpc(int _playerCount, int _startingIndex, int _winnerIndex, int _loserIndex)
 	{
 		//Debug.Log("Client Started");
 		if (IsClient)
@@ -717,6 +784,8 @@ public class GameLogic : NetworkBehaviour
 			startingIndex = _startingIndex;
 			playerCount = _playerCount;
 		}
+		winnerIndex = _winnerIndex;
+		loserIndex = _loserIndex;
 		StartCoroutine(Setup());
 	}
 
@@ -732,11 +801,21 @@ public class GameLogic : NetworkBehaviour
 	void Start()
 	{
 		WinnerTxt.SetText("");
+		int wIndex = PlayerPrefs.GetInt("winnerIndex", -1);
+		int lIndex = PlayerPrefs.GetInt("loserIndex", -1);
 		if (IsHost)
 		{
 			playerCount = NetworkManager.Singleton.ConnectedClientsList.Count;
-			startingIndex = Random.Range(0, playerCount);
-			StartClientRpc(playerCount, startingIndex);
+			startingIndex = UnityEngine.Random.Range(0, playerCount);
+			StartClientRpc(playerCount, startingIndex, wIndex, lIndex);
 		}
+	}
+
+	private void OnApplicationQuit()
+	{
+		// Delete all PlayerPrefs keys
+		PlayerPrefs.DeleteAll();
+		PlayerPrefs.Save();  // Ensures the deletion is saved
+		Debug.Log("All PlayerPrefs cleared on game exit.");
 	}
 }
