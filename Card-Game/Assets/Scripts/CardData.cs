@@ -1,4 +1,3 @@
-using TreeEditor;
 using UnityEngine;
 
 public class CardData : MonoBehaviour
@@ -58,7 +57,7 @@ public class CardData : MonoBehaviour
 	public void Update()
 	{
 		if (!moving) return;
-		if (transform.position == targetPos || targetPos.Equals(new Vector3(-1, -1, -1)))
+		if (transform.position == targetPos)
 		{
 			moving = false;
 			return;
@@ -71,7 +70,7 @@ public class CardData : MonoBehaviour
 		}
 		Vector3 dist = targetPos - transform.position;
 		Vector3 temp;
-		if (dist.x > 0 || dist.z > 0)
+		if (Mathf.Abs( dist.x) > 0.00004 || Mathf.Abs(dist.z) > 0.00004)
 			temp = new Vector3(targetPos.x, transform.position.y, targetPos.z);
 		else
 		{

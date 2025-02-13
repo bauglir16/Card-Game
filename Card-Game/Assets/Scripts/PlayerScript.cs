@@ -74,15 +74,10 @@ public class PlayerScript : MonoBehaviour
 
 		if (cardsAtHand.Count % 2 != 0) //Odd number of cards
 		{
-			//cardsAtHand[sideCardsNumber].transform.rotation = transform.rotation * Quaternion.Euler(0, 180f, 0);
-
 			MoveCard(cardsAtHand[sideCardsNumber], transform.position + transform.forward * (handForwardRadius - zDistanceOfCards * 3 * sideCardsNumber), newRot);
 			if (cardsAtHand.Count == 1) return;
 			xOffestMultiplier = 1;
 		}
-
-		//cardsAtHand[sideCardsNumber - 1].transform.rotation = transform.rotation * Quaternion.Euler(0, 180f, 0);
-		//cardsAtHand[cardsAtHand.Count - sideCardsNumber].transform.rotation = transform.rotation * Quaternion.Euler(0, 180f, 0);
 
 		toTheRight = transform.right * (xDistanceOfCards * xOffestMultiplier);
 		MoveCard(cardsAtHand[sideCardsNumber - 1], transform.position - toTheRight + transform.forward * (handForwardRadius - (zDistanceOfCards * 3 * (sideCardsNumber - 1))), newRot);
@@ -90,8 +85,6 @@ public class PlayerScript : MonoBehaviour
 		int iterationCounter = 1;
 		for (int i = sideCardsNumber - 2, j = cardsAtHand.Count - sideCardsNumber + 1; i >= 0 && j < cardsAtHand.Count; i--, j++)
 		{
-			//cardsAtHand[i].transform.rotation = transform.rotation * Quaternion.Euler(0, 180f, 0);
-			//cardsAtHand[j].transform.rotation = transform.rotation * Quaternion.Euler(0, 180f, 0);
 			toTheRight = transform.right * (xDistanceOfCards * iterationCounter + xDistanceOfCards * xOffestMultiplier);
 			MoveCard(cardsAtHand[i], transform.position - toTheRight + transform.forward * (handForwardRadius - zDistanceOfCards * 3 * i), newRot);
 			MoveCard(cardsAtHand[j], transform.position + toTheRight + transform.forward * (handForwardRadius - zDistanceOfCards * 3 * j), newRot);
