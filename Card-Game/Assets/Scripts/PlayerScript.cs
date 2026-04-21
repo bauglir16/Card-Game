@@ -49,6 +49,8 @@ public class PlayerScript : MonoBehaviour
 	public int id;
 	private int cardLimit;
 
+	[SerializeField] TextMesh text;
+
 	public bool finishedChoosing { get; set; }
 
 	void ArrangeCardsAtHand()
@@ -101,7 +103,7 @@ public class PlayerScript : MonoBehaviour
 
 	public void GiveFirst3Cards(CardData card1, CardData card2, CardData card3)
 	{
-		if (card1 == null) Debug.Log("Null");
+		//if (card1 == null) Debug.Log("Null");
 		card1.transform.position = downCardsTransforms[2][0].position;
 		card1.transform.rotation = downCardsTransforms[2][0].rotation;
 		card2.transform.position = downCardsTransforms[2][1].position;
@@ -161,7 +163,7 @@ public class PlayerScript : MonoBehaviour
 
 	public void chooseCardsToExchange(PlayerScript otherPlayer)
 	{
-		Debug.Log($"Other player index: {otherPlayer.id}");
+		//Debug.Log($"Other player index: {otherPlayer.id}");
 		clickedObjects.Clear();
 		choosingList.Clear();
 		cardLimit = 2;
@@ -195,12 +197,12 @@ public class PlayerScript : MonoBehaviour
 			finishedChoosing = false;
 			m_Phase = phases.choosing;
 		}
-		Debug.Log("Button is " + ((okButton == null) ? "" : "not ") + "null");
+		//Debug.Log("Button is " + ((okButton == null) ? "" : "not ") + "null");
 		okButton.onClick.AddListener(() => {
-			Debug.Log("Listener triggered");
+			//Debug.Log("Listener triggered");
 			int index;
 
-			Debug.Log("Clicked size: " + clickedObjects.Count);
+			//Debug.Log("Clicked size: " + clickedObjects.Count);
 			for (int i = 0; i < clickedObjects.Count; i++)
 			{
 				index = first3Cards.IndexOf(clickedObjects[i]);
@@ -222,7 +224,7 @@ public class PlayerScript : MonoBehaviour
 
 			clickedObjects.Clear();
 			second3Cards.AddRange(first3Cards);
-			Debug.Log("Second hand size: " + second3Cards.Count);
+			//Debug.Log("Second hand size: " + second3Cards.Count);
 			for (int i = 0; i < second3Cards.Count; i++)
 			{
 				second3Cards[i].transform.SetPositionAndRotation(downCardsTransforms[1][i].position, downCardsTransforms[1][i].rotation);
@@ -240,7 +242,7 @@ public class PlayerScript : MonoBehaviour
 	// Start is called once before the first execution of Update after the MonoBehaviour is created
 	void Start()
 	{
-		Debug.Log("Player Started");
+		//Debug.Log("Player Started");
 		float x = transform.rotation.x, y = transform.rotation.y;
 		transform.LookAt(new Vector3(transform.parent.transform.position.x, transform.position.y, transform.parent.transform.position.z));
 		//Debug.Log(transform.rotation.x.ToString() + " " + transform.rotation.y.ToString() + " " + transform.rotation.z.ToString());
@@ -258,6 +260,8 @@ public class PlayerScript : MonoBehaviour
 
 		BehindCameraPos = transform.GetChild(0);
 		AboveCardsCameraPos = downCardsObject.GetChild(downCardsObject.childCount - 1);
+		transform.GetChild(3).gameObject.GetComponent<TMPro.TextMeshPro>().text = id.ToString();
+
 		RankOnTop = 0;
 		cardLimit = 0;
 		finishedChoosing = false;
@@ -281,7 +285,7 @@ public class PlayerScript : MonoBehaviour
 	void HoverCards(int limit = 4)
 	{
 
-		if (clickedObjects.Capacity != limit) clickedObjects = new List<CardData>(limit);
+		if (clickedObjects.Count > limit) clickedObjects.Clear();
 		Ray ray = playerCamera.ScreenPointToRay(Input.mousePosition);
 		RaycastHit hit;
 
@@ -405,6 +409,8 @@ public class PlayerScript : MonoBehaviour
 
 	void OnHoverExit(CardData obj, bool force = false)
 	{
+		if (obj == null) return;
+
 		if (force || !clickedObjects.Contains(obj))
 			obj.m_Renderer.material.color = Color.white; // Original color
 	}
@@ -412,7 +418,7 @@ public class PlayerScript : MonoBehaviour
 	internal void Play(bool Internal = true)
 	{
 
-		if (cardsAtHand.Count == 0 && deckFinished && second3Cards.Count == 0)
+		if (cardsAtHand.Count == 0 && second3Cards.Count == 0)
 		{
 			choosingList = third3Cards;
 			cardLimit = 1;
@@ -468,7 +474,7 @@ public class PlayerScript : MonoBehaviour
 
 					finishedChoosing = false;
 					finishedPlaying = true;
-					//Debug.Log(finishedPlaying);
+					Debug.Log(finishedPlaying);
 				}
 
 				Out = third3Cards.Count == 0 && cardsAtHand.Count == 0;
@@ -488,7 +494,7 @@ public class PlayerScript : MonoBehaviour
 			if (card == null)
 				card = second3Cards.Find(x=> x.Id == cardId);
 		}
-		if(card == null) Debug.LogError($"Card not found: {cardId}");
+		//if (card == null) Debug.LogError($"Card not found: {cardId}");
 		clickedObjects.Add(card);
 	}
 

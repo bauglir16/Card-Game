@@ -81,7 +81,7 @@ public class MainMenuManager : MonoBehaviour
             if (playerCount >= 1 && playerCount <= 4) // Αν ο αριθμός παικτών είναι μεταξύ 1 και 4
             {
                 errorMessageText.gameObject.SetActive(false); // Κρύβουμε το μήνυμα σφάλματος
-                Debug.Log("Αριθμός παικτών: " + playerCount);
+                //Debug.Log("Αριθμός παικτών: " + playerCount);
                 OfflinePlayButton.SetActive(true);
                 // Εδώ μπορείς να προσθέσεις τη λογική για να προχωρήσεις με την επιλογή των παικτών
             }

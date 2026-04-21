@@ -6,44 +6,54 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System;
+using JetBrains.Annotations;
 
 public class GameLogic : NetworkBehaviour
 {
 	public CardData cardPrefab;
 	public PlayerScript playerPrefab;
-	List<CardIds> m_InitialDeck;
+	float m_cardThickness;
+
 	public List<CardData> m_PlayedCards;
+	List<CardIds> m_InitialDeck;
 	Stack<CardIds> m_ShuffledDeck;
+
 	public int playerCount;
+	public List<PlayerScript> m_Players = new List<PlayerScript>();
+	public int m_PlayerIndex;
+	public int localIndex;
 	public float playerRadius;
 	int winnerIndex, loserIndex;
-	public List<PlayerScript> m_Players = new List<PlayerScript>();
 	Transform cardSpawnPos, playedPos;
 	Vector3 initialPlayedPos;
 	GameObject m_PhysicalDeck;
-	float m_cardThickness;
-	public int m_PlayerIndex;
 	int startingIndex;
+	
 	enum Stages { Null, setup, exchanging, choosing, givingCards, playing }
+	
 	public int RankOnTop;
 	public int countRankOnTop = 0;
 	public int PowerOnTop;
+	int inPlayers;
 	bool playerIsOut;
+	
 	public NetworkVariable<int> Done;
+	public bool[] DoneList;
 	public NetworkVariable<bool> dataAvailable;
-	public int localIndex;
 	public NetworkVariable<int> netRemotePlayerIndex;
 	public NetworkList<int> netShuffledDeck;
 	public NetworkList<int> netClickedObjects;
 	NetworkVariable<Stages> netStage = new NetworkVariable<Stages>();
+	int roundN = 1;
+	[SerializeField] private bool isWaitingForServer;
 	bool playAgain;
+	
+	public Button okButton;
 
 	List<CardData> cards = new List<CardData>();
 	bool again = false;
 	CardData firstCard;
-	private bool isWaitingForServer;
-	public Button okButton;
-	int roundN = 1;
+
 	public TMP_Text RankOnTopText;
 	public TMP_Text countRankOnTopText;
 	public TMP_Text PowerOnTopText;
@@ -96,7 +106,7 @@ public class GameLogic : NetworkBehaviour
 				m_Players[i].deckFinished = true;
 			}
 
-			Debug.Log("Deck finished");
+			//Debug.Log("Deck finished");
 		}
 	}
 
@@ -106,7 +116,7 @@ public class GameLogic : NetworkBehaviour
 
 		if (player.clickedObjects.Count == 0)
 		{
-			if (localIndex != m_PlayerIndex) Debug.Log($"Taking all cards {m_PlayerIndex} | {Time.frameCount}");
+			//if (localIndex != m_PlayerIndex) Debug.Log($"Taking all cards {m_PlayerIndex} | {Time.frameCount}");
 			player.TakeAllCards(m_PlayedCards);
 			RankOnTop = 0;
 			PowerOnTop = 0;
@@ -157,7 +167,7 @@ public class GameLogic : NetworkBehaviour
 		countRankOnTopText.SetText(countRankOnTop.ToString());
 		PowerOnTopText.SetText(PowerOnTop.ToString());
 
-		Debug.Log($"Clicked cleared {Time.frameCount}");
+		//Debug.Log($"Clicked cleared {Time.frameCount}");
 		player.clickedObjects.Clear();
 		return playAgain;
 	}
@@ -166,10 +176,11 @@ public class GameLogic : NetworkBehaviour
 	public IEnumerator Setup()
 	{
 		localIndex = (int)NetworkManager.Singleton.LocalClientId;
-		Debug.Log($"Local index: {localIndex}");
+		//Debug.Log($"Local index: {localIndex}");
 		cardSpawnPos = transform.GetChild(0).transform.GetChild(52);
 		m_PhysicalDeck = transform.GetChild(0).gameObject;
-		
+		playerIsOut = false;
+
 
 		initPlayers();
 		initDecks();
@@ -182,30 +193,36 @@ public class GameLogic : NetworkBehaviour
 
 	private IEnumerator waitForSync(Stages next = Stages.Null)
 	{
+		Debug.Log("Wait for sync");
 		if (IsHost)
 		{
+			Debug.Log("I am the host");
+			Debug.Log("Done null: " + Done == null);
+			Debug.Log("m_Players null: " + m_Players == null);
 			while (Done.Value != m_Players.Count - 1)
 			{
-				Debug.Log("Set up done: " + Done.Value);
+				//Debug.Log("Set up done: " + Done.Value);
 				yield return null;
 			}
-			Debug.Log($"All clients finished");
+			//Debug.Log($"All clients finished");
 			if (next != Stages.Null) 
 				netStage.Value = next;
 			dataAvailable.Value = false;
-			Done.Value = 0;
 			NotifyClientRpc();
+			Done.Value = 0;
 		}
 		else
 		{
-			Debug.Log("Client finished");
+			Debug.Log("[IN] Client finished");
 			isWaitingForServer = true;
 			eventDoneServerRpc(localIndex);
-			while (isWaitingForServer || Done.Value != 0)
+			Debug.Log("[IN] Notified Server");
+			while (isWaitingForServer)// || Done.Value != 0)
 			{
-				Debug.Log("Waiting");
+				//Debug.Log("Waiting");
 				yield return null;
 			}
+			Debug.Log("[IN] Server responded");
 		}
 	}
 
@@ -214,30 +231,31 @@ public class GameLogic : NetworkBehaviour
 		if (IsHost)
 		{
 			while (Done.Value != m_Players.Count - 1)
+			//while (DoneList.Any(b => !b))
 			{
-				Debug.Log("Set up done: " + Done.Value);
+				//Debug.Log("Set up done: " + Done.Value);
 				yield return null;
 			}
-			Debug.Log($"All clients finished");
+			//Debug.Log($"All clients finished");
 			if (next != Stages.Null)
 				netStage.Value = next;
 			netRemotePlayerIndex.Value = m_PlayerIndex;
 			dataAvailable.Value = false;
 			Done.Value = 0;
 			NotifyClientRpc();
-			Debug.Log($"Clients notified frame: {Time.frameCount}");
+			//Debug.Log($"Clients notified frame: {Time.frameCount}");
 		}
 		else
 		{
-			Debug.Log($"Client finished frame: {Time.frameCount}");
+			//Debug.Log($"Client finished frame: {Time.frameCount}");
 			isWaitingForServer = true;
 			eventDoneServerRpc(localIndex);
-			while (isWaitingForServer || Done.Value != 0)
+			while (isWaitingForServer)// || Done.Value != 0)
 			{
-				Debug.Log("Waiting");
+				//Debug.Log("Waiting");
 				yield return null;
 			}
-			Debug.Log($"Wait finished frame: {Time.frameCount}");
+			//Debug.Log($"Wait finished frame: {Time.frameCount}");
 		}
 	}
 
@@ -246,25 +264,27 @@ public class GameLogic : NetworkBehaviour
 		if (IsHost)
 		{
 			while (Done.Value != m_Players.Count - 1)
+			//while (DoneList.Any(b => !b))
 			{
-				Debug.Log("Set up done: " + Done.Value);
+				//Debug.Log("Set up done: " + Done.Value);
 				yield return null;
 			}
 			netRemotePlayerIndex.Value++;
 			netClickedObjects.Clear();
 			dataAvailable.Value = false;
 			Done.Value = 0;
+			//Array.Fill(DoneList, false);
 			NotifyClientRpc();
-			Debug.Log("Clients notified");
+			//Debug.Log("Clients notified");
 		}
 		else
 		{
-			Debug.Log("Client finished");
+			//Debug.Log("Client finished");
 			isWaitingForServer = true;
 			eventDoneServerRpc();
-			while (isWaitingForServer || Done.Value != 0)
+			while (isWaitingForServer)// || Done.Value != 0)
 			{
-				Debug.Log("Waiting for server");
+				//Debug.Log("Waiting for server");
 				yield return null;
 			}
 		}
@@ -289,7 +309,7 @@ public class GameLogic : NetworkBehaviour
 				netShuffledDeck.Add((int)m_InitialDeck[randomCard]);
 				m_InitialDeck.RemoveAt(randomCard);
 			}
-			Debug.Log("Net deck count: " + netShuffledDeck.Count + " | " + Time.frameCount);
+			//Debug.Log("Net deck count: " + netShuffledDeck.Count + " | " + Time.frameCount);
 		}
 
 
@@ -304,9 +324,11 @@ public class GameLogic : NetworkBehaviour
 
 	private void initPlayers()
 	{
+		inPlayers = playerCount;
 		for (int i = 0; i < playerCount; i++)
 		{
 			m_Players.Add(Instantiate<PlayerScript>(playerPrefab, transform));
+			//DoneList[i] = false;
 		}
 		for (int i = 0; i < m_Players.Count; i++)
 		{
@@ -320,11 +342,12 @@ public class GameLogic : NetworkBehaviour
 		}
 	}
 
-	[ServerRpc(RequireOwnership = false)]
+	//[ServerRpc(RequireOwnership = false)]
+	[Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
 	public void eventDoneServerRpc(int localIndex = -1)
 	{
 		Done.Value++;
-		if (localIndex >= 0) Debug.Log("Client index: " + localIndex);
+		//if (localIndex >= 0) Debug.Log("Client index: " + localIndex);
 	}
 
 	IEnumerator updateCoroutine()
@@ -386,7 +409,7 @@ public class GameLogic : NetworkBehaviour
 		yield return StartCoroutine(GameLoop());
 		
 		loserIndex = m_Players[0].id;
-		Debug.Log("Player " + loserIndex + " is the whore");
+		//Debug.Log("Player " + loserIndex + " is the whore");
 		PlayerPrefs.SetInt("loserIndex", loserIndex);
 		PlayerPrefs.Save();
 		NetworkManager.SceneManager.LoadScene("LobbyScene", UnityEngine.SceneManagement.LoadSceneMode.Single);
@@ -427,14 +450,14 @@ public class GameLogic : NetworkBehaviour
 			cardsPos.Add(m_Players[winnerIndex].getDownCardPos((CardIds)netClickedObjects[i]));
 			cardsToExchange.Add(m_Players[winnerIndex].getDownCard(cardsPos[i].Item1, cardsPos[i].Item2));
 		}
-		Debug.Log($"cardPos l: {cardsPos.Count} | cardsToExchange l: {cardsToExchange.Count}");
+		//Debug.Log($"cardPos l: {cardsPos.Count} | cardsToExchange l: {cardsToExchange.Count}");
 		for (; i < 4; i++)
 		{
 			cardsPos.Add(m_Players[loserIndex].getDownCardPos((CardIds)netClickedObjects[i]));
 			cardsToExchange.Add(m_Players[loserIndex].getDownCard(cardsPos[i].Item1, cardsPos[i].Item2));
 		}
 
-		Debug.Log($"cardPos l: {cardsPos.Count} | cardsToExchange l: {cardsToExchange.Count}");
+		//Debug.Log($"cardPos l: {cardsPos.Count} | cardsToExchange l: {cardsToExchange.Count}");
 
 		for (i = 0; i < 2; i++)
 		{
@@ -449,9 +472,9 @@ public class GameLogic : NetworkBehaviour
 	private IEnumerator GameLoop()
 	{
 		setPlayerIndex(startingIndex);
-		while (m_Players.Count > 1)
+		while (inPlayers > 1)
 		{
-			Debug.Log($"=================================ROUND {roundN}=================================");
+			//Debug.Log($"=================================ROUND {roundN}=================================");
 
 			for (int i = 0; i < m_Players.Count; i++)
 			{
@@ -460,31 +483,38 @@ public class GameLogic : NetworkBehaviour
 				string log = "[";
 				m_Players[i].cardsAtHand.ForEach(i => log += i.Id + ", ");
 				log += "]";
-				Debug.Log($"Cards at Hand: {log}");
+				//Debug.Log($"Cards at Hand: {log}");
 			}
 
-			m_Players[localIndex].RankOnTop = RankOnTop;
-			m_Players[localIndex].PowerOnTop = PowerOnTop;
-			m_Players[localIndex].countRankOnTop = countRankOnTop;
 			setUIText();
-			m_Players[localIndex].SetCamera();
+			if (!playerIsOut)
+			{
+				m_Players[localIndex].RankOnTop = RankOnTop;
+				m_Players[localIndex].PowerOnTop = PowerOnTop;
+				m_Players[localIndex].countRankOnTop = countRankOnTop;
+				m_Players[localIndex].SetCamera();
+			}
 
+			//Debug.Log($"Current player index: {m_PlayerIndex}");
 			if (localIndex == m_PlayerIndex)
 				yield return StartCoroutine(Play());
 			else
 				yield return StartCoroutine(FollowDecisionsOfRemotePlayer());
 
 			yield return StartCoroutine(waitForSync());
+			Debug.Log("Sync done");
 
 			if (m_Players[m_PlayerIndex].finishedPlaying)
 			{
 				ApplyPlayerDecisions();
 				PrepareNextRound();
 
-				yield return StartCoroutine(waitForPlaySync());
-
-				roundN++;
+				
 			}
+			
+			yield return StartCoroutine(waitForPlaySync());
+
+			roundN++;
 			yield return null;
 		}
 	}
@@ -493,21 +523,31 @@ public class GameLogic : NetworkBehaviour
 	{
 		if (!playAgain)
 		{
-			if (playerIsOut)
+			int nextPlayerIndex;
+			do
 			{
-				m_Players.RemoveAt(m_PlayerIndex);
-				m_PlayerIndex -= (m_PlayerIndex == m_Players.Count) ? m_PlayerIndex + 1 : 1; //Size of list = last index before removal
-				playerIsOut = false;
+				nextPlayerIndex = (m_PlayerIndex + 1) % m_Players.Count();
+			} while (m_Players[nextPlayerIndex].Out);
+
+			m_Players[m_PlayerIndex].finishedPlaying = false;
+			if (m_Players[m_PlayerIndex].Out)
+			{
+				int toBeRemoved = m_PlayerIndex;
+				//m_PlayerIndex -= (m_PlayerIndex == m_Players.Count) ? m_PlayerIndex + 1 : 1; //Size of list = last index before removal
+				//if (toBeRemoved < m_Players.Count - 1) --nextPlayerIndex;
+
+				//m_Players.RemoveAt(toBeRemoved);
+
+				if (toBeRemoved == localIndex) playerIsOut = true;
 			}
 
-			setPlayerIndex((m_PlayerIndex + 1) % m_Players.Count());
+			setPlayerIndex(nextPlayerIndex);
 
-			if (m_Players.Count < playerCount)
-				Debug.Log(m_PlayerIndex);
+			//if (m_Players.Count < playerCount) Debug.Log(m_PlayerIndex);
 		}
 		else
 		{
-			Debug.Log(m_PlayedCards[m_PlayedCards.Count - 1].Rank);
+			//Debug.Log(m_PlayedCards[m_PlayedCards.Count - 1].Rank);
 
 			playedPos.position = initialPlayedPos;
 			for (int i = 0; i < m_PlayedCards.Count; i++)
@@ -520,8 +560,6 @@ public class GameLogic : NetworkBehaviour
 			m_PlayedCards.Clear();
 			playAgain = false;
 		}
-
-		m_Players[m_PlayerIndex].finishedPlaying = false;
 	}
 
 	private void setPlayerIndex(int v)
@@ -532,11 +570,11 @@ public class GameLogic : NetworkBehaviour
 
 	private void ApplyPlayerDecisions()
 	{
-		if (m_Players[m_PlayerIndex].clickedObjects.Count > 0) Debug.Log(m_Players[m_PlayerIndex].clickedObjects[0].Id);
+		//if (m_Players[m_PlayerIndex].clickedObjects.Count > 0) Debug.Log(m_Players[m_PlayerIndex].clickedObjects[0].Id);
 
 		playAgain = PlayCards(m_Players[m_PlayerIndex]);
 
-		if (playAgain) Debug.Log($"Play again: {m_PlayerIndex}");
+		//if (playAgain) Debug.Log($"Play again: {m_PlayerIndex}");
 
 		for (int i = m_Players[m_PlayerIndex].cardsAtHand.Count; m_ShuffledDeck.Count > 0 && i < 3; i++)
 			GiveCard(m_ShuffledDeck.Pop(), m_Players[m_PlayerIndex]);
@@ -546,16 +584,17 @@ public class GameLogic : NetworkBehaviour
 			if (m_Players.Count == playerCount)
 			{
 				winnerIndex = m_Players[m_PlayerIndex].id;
-				Debug.Log("Player " + m_PlayerIndex + " is the winner");
+				//Debug.Log("Player " + m_PlayerIndex + " is the winner");
 				PlayerPrefs.SetInt("winnerIndex", m_PlayerIndex);
 				StartCoroutine(ShowWinnerCoroutine(m_PlayerIndex));
 			}
 
-			playerIsOut = true;
+			//playerIsOut = true;
+			--inPlayers;
 
 			if (playAgain)
 			{
-				Debug.Log(m_PlayedCards[m_PlayedCards.Count - 1].Rank);
+				//Debug.Log(m_PlayedCards[m_PlayedCards.Count - 1].Rank);
 
 				playedPos.position = initialPlayedPos;
 				for (int i = 0; i < m_PlayedCards.Count; i++)
@@ -573,12 +612,15 @@ public class GameLogic : NetworkBehaviour
 
 	private IEnumerator FollowDecisionsOfRemotePlayer()
 	{
-		Debug.Log($"Not playing frame: {Time.frameCount}");
+		Debug.Log($"Not playing | Round: {roundN}");
 
 		yield return StartCoroutine(waitForData());
 
+		if (playerIsOut)
+			Debug.Log("Data Available");
+
+		okButton.onClick.RemoveAllListeners();
 		m_Players[m_PlayerIndex].okButton = okButton;
-		m_Players[m_PlayerIndex].okButton.onClick.RemoveAllListeners();
 		m_Players[m_PlayerIndex].Play(false);
 		for (int i = 0; i < netClickedObjects.Count; i++)
 			m_Players[m_PlayerIndex].addClickedCard((CardIds)netClickedObjects[i]);
@@ -590,10 +632,10 @@ public class GameLogic : NetworkBehaviour
 
 	private IEnumerator Play()
 	{
-		Debug.Log($"Playing frame: {Time.frameCount}");
+		Debug.Log($"Playing | Round: {roundN}");
 
+		okButton.onClick.RemoveAllListeners();
 		m_Players[localIndex].okButton = okButton;
-		m_Players[localIndex].okButton.onClick.RemoveAllListeners();
 		m_Players[localIndex].Play();
 
 		while (!m_Players[localIndex].finishedPlaying && !m_Players[localIndex].finishedChoosing)
@@ -605,12 +647,25 @@ public class GameLogic : NetworkBehaviour
 		int[] temp = (m_Players[localIndex].finishedPlaying) ? m_Players[localIndex].ClickedObjectsIdsAsInts() : m_Players[localIndex].CardsAtHandIdsAsInts();
 		if (!IsHost)
 		{
+			isWaitingForServer = true;
 			eventSetClickedObjectsServerRpc(temp, localIndex);
+			while (isWaitingForServer)// || Done.Value != 0)
+			{
+				//Debug.Log("Waiting");
+				yield return null;
+			}
 		}
 		else
+		{
 			SetNetClickedObjects(temp);
+			while (Done.Value != m_Players.Count - 1)
+			{
+				//Debug.Log("Set up done: " + Done.Value);
+				yield return null;
+			}
+		}
 
-		Debug.Log("Local player net deck size: " + netClickedObjects.Count + " | " + Time.frameCount);
+		//Debug.Log("Local player net deck size: " + netClickedObjects.Count + " | " + Time.frameCount);
 	}
 
 	private void setUIText()
@@ -632,14 +687,14 @@ public class GameLogic : NetworkBehaviour
 				else
 					SetNetClickedObjects(m_Players[localIndex].CardsAtHandIdsAsInts());
 
-				Debug.Log("Local player net deck size: " + netClickedObjects.Count + " | " + Time.frameCount);
+				//Debug.Log("Local player net deck size: " + netClickedObjects.Count + " | " + Time.frameCount);
 			}
 			else
 			{
 				yield return StartCoroutine(waitForData());
 
-				for (int i = 0; i < netClickedObjects.Count; i++)
-					Debug.Log("Other player hand: " + (CardIds)netClickedObjects[i]);
+				for (int i = 0; i < netClickedObjects.Count; i++) ;
+					//Debug.Log("Other player hand: " + (CardIds)netClickedObjects[i]);
 				List<CardIds> list = new List<CardIds>();
 				for (int i = 0; i < 3; i++)
 				{
@@ -721,10 +776,10 @@ public class GameLogic : NetworkBehaviour
 	{
 		while (!dataAvailable.Value)
 		{
-			Debug.Log($"No data yet | {Time.frameCount}");
+			//Debug.Log($"No data yet | {Time.frameCount}");
 			yield return null;
 		}
-		Debug.Log($"Data added | {Time.frameCount}");
+		//Debug.Log($"Data added | {Time.frameCount}");
 	}
 
 	private void rotateIndexPointer()
@@ -748,12 +803,13 @@ public class GameLogic : NetworkBehaviour
 		{
 			netClickedObjects.Add(clickedObjects[i]);
 		}
-		Debug.Log($"Data added | {Time.frameCount}");
+		//Debug.Log($"Data added | {Time.frameCount}");
 		//NotifyClientRpc(playerId);
 		dataAvailable.Value = true;
 	}
 
-	[ServerRpc(RequireOwnership = false)]
+	//[ServerRpc(RequireOwnership = false)]
+	[Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
 	public void eventSetClickedObjectsServerRpc(int[] clickedObjects, int playerId)
 	{
 		netClickedObjects.Clear();
@@ -761,8 +817,8 @@ public class GameLogic : NetworkBehaviour
 		{
 			netClickedObjects.Add(clickedObjects[i]);
 		}
-		Debug.Log($"Data added | {Time.frameCount}");
-		NotifyClientRpc(playerId);
+		//Debug.Log($"Data added | {Time.frameCount}");
+		NotifyClientRpc();
 		dataAvailable.Value = true;
 	}
 
@@ -796,6 +852,7 @@ public class GameLogic : NetworkBehaviour
 		netStage.Value = Stages.Null;
 		netRemotePlayerIndex = new NetworkVariable<int>();
 		Done = new NetworkVariable<int>(0);
+		DoneList = new bool[playerCount];
 	}
 
 	void Start()
