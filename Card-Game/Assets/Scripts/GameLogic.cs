@@ -180,6 +180,8 @@ public class GameLogic : NetworkBehaviour
 		cardSpawnPos = transform.GetChild(0).transform.GetChild(52);
 		m_PhysicalDeck = transform.GetChild(0).gameObject;
 		playerIsOut = false;
+		Debug.Log($"DoneList = new bool[{playerCount}];");
+		DoneList = new bool[playerCount];
 
 
 		initPlayers();
@@ -193,13 +195,15 @@ public class GameLogic : NetworkBehaviour
 
 	private IEnumerator waitForSync(Stages next = Stages.Null)
 	{
-		Debug.Log("Wait for sync");
+		Debug.Log($"Wait for sync [{DateTime.Now.ToString("HH:mm:ss.fff")}]");
 		if (IsHost)
 		{
 			Debug.Log("I am the host");
 			Debug.Log("Done null: " + Done == null);
 			Debug.Log("m_Players null: " + m_Players == null);
-			while (Done.Value != m_Players.Count - 1)
+			DoneList[localIndex] = true;
+			//while (Done.Value != m_Players.Count - 1)
+			while (DoneList.Any(b => !b))
 			{
 				//Debug.Log("Set up done: " + Done.Value);
 				yield return null;
@@ -208,8 +212,9 @@ public class GameLogic : NetworkBehaviour
 			if (next != Stages.Null) 
 				netStage.Value = next;
 			dataAvailable.Value = false;
+			Array.Fill(DoneList, false);
 			NotifyClientRpc();
-			Done.Value = 0;
+			//Done.Value = 0;
 		}
 		else
 		{
@@ -230,8 +235,10 @@ public class GameLogic : NetworkBehaviour
 	{
 		if (IsHost)
 		{
-			while (Done.Value != m_Players.Count - 1)
-			//while (DoneList.Any(b => !b))
+			//while (Done.Value != m_Players.Count - 1)
+			Debug.Log($"Wait for play sync [{DateTime.Now.ToString("HH:mm:ss.fff")}]");
+			DoneList[localIndex] = true;
+			while (DoneList.Any(b => !b))
 			{
 				//Debug.Log("Set up done: " + Done.Value);
 				yield return null;
@@ -241,7 +248,8 @@ public class GameLogic : NetworkBehaviour
 				netStage.Value = next;
 			netRemotePlayerIndex.Value = m_PlayerIndex;
 			dataAvailable.Value = false;
-			Done.Value = 0;
+			//Done.Value = 0;
+			Array.Fill(DoneList, false);
 			NotifyClientRpc();
 			//Debug.Log($"Clients notified frame: {Time.frameCount}");
 		}
@@ -263,8 +271,9 @@ public class GameLogic : NetworkBehaviour
 	{
 		if (IsHost)
 		{
-			while (Done.Value != m_Players.Count - 1)
-			//while (DoneList.Any(b => !b))
+			//while (Done.Value != m_Players.Count - 1)
+			DoneList[localIndex] = true;
+			while (DoneList.Any(b => !b))
 			{
 				//Debug.Log("Set up done: " + Done.Value);
 				yield return null;
@@ -272,8 +281,8 @@ public class GameLogic : NetworkBehaviour
 			netRemotePlayerIndex.Value++;
 			netClickedObjects.Clear();
 			dataAvailable.Value = false;
-			Done.Value = 0;
-			//Array.Fill(DoneList, false);
+			//Done.Value = 0;
+			Array.Fill(DoneList, false);
 			NotifyClientRpc();
 			//Debug.Log("Clients notified");
 		}
@@ -281,7 +290,7 @@ public class GameLogic : NetworkBehaviour
 		{
 			//Debug.Log("Client finished");
 			isWaitingForServer = true;
-			eventDoneServerRpc();
+			eventDoneServerRpc(localIndex);
 			while (isWaitingForServer)// || Done.Value != 0)
 			{
 				//Debug.Log("Waiting for server");
@@ -328,7 +337,8 @@ public class GameLogic : NetworkBehaviour
 		for (int i = 0; i < playerCount; i++)
 		{
 			m_Players.Add(Instantiate<PlayerScript>(playerPrefab, transform));
-			//DoneList[i] = false;
+			Debug.Log("DoneList = false");
+			if (IsHost) DoneList[i] = false;
 		}
 		for (int i = 0; i < m_Players.Count; i++)
 		{
@@ -344,9 +354,11 @@ public class GameLogic : NetworkBehaviour
 
 	//[ServerRpc(RequireOwnership = false)]
 	[Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
-	public void eventDoneServerRpc(int localIndex = -1)
+	public void eventDoneServerRpc(int p_localIndex)
 	{
-		Done.Value++;
+		//Done.Value++;
+		Debug.Log($"Done client {p_localIndex} [{DateTime.Now.ToString("HH:mm:ss.fff")}]");
+		DoneList[p_localIndex] = true;
 		//if (localIndex >= 0) Debug.Log("Client index: " + localIndex);
 	}
 
@@ -502,15 +514,13 @@ public class GameLogic : NetworkBehaviour
 				yield return StartCoroutine(FollowDecisionsOfRemotePlayer());
 
 			yield return StartCoroutine(waitForSync());
-			Debug.Log("Sync done");
+			Debug.Log($"Sync done [{DateTime.Now.ToString("HH:mm:ss.fff")}]");
 
 			if (m_Players[m_PlayerIndex].finishedPlaying)
 			{
 				ApplyPlayerDecisions();
 				PrepareNextRound();
-
-				
-			}
+			} 
 			
 			yield return StartCoroutine(waitForPlaySync());
 
@@ -523,10 +533,10 @@ public class GameLogic : NetworkBehaviour
 	{
 		if (!playAgain)
 		{
-			int nextPlayerIndex;
+			int nextPlayerIndex = m_PlayerIndex;
 			do
 			{
-				nextPlayerIndex = (m_PlayerIndex + 1) % m_Players.Count();
+				nextPlayerIndex = (nextPlayerIndex + 1) % m_Players.Count();
 			} while (m_Players[nextPlayerIndex].Out);
 
 			m_Players[m_PlayerIndex].finishedPlaying = false;
@@ -616,8 +626,7 @@ public class GameLogic : NetworkBehaviour
 
 		yield return StartCoroutine(waitForData());
 
-		if (playerIsOut)
-			Debug.Log("Data Available");
+		Debug.Log("Data Available");
 
 		okButton.onClick.RemoveAllListeners();
 		m_Players[m_PlayerIndex].okButton = okButton;
@@ -658,11 +667,12 @@ public class GameLogic : NetworkBehaviour
 		else
 		{
 			SetNetClickedObjects(temp);
-			while (Done.Value != m_Players.Count - 1)
-			{
-				//Debug.Log("Set up done: " + Done.Value);
-				yield return null;
-			}
+			//DoneList[localIndex] = true;
+			//while (DoneList.Any(b => !b))
+			//{
+			//	//Debug.Log("Set up done: " + Done.Value);
+			//	yield return null;
+			//}
 		}
 
 		//Debug.Log("Local player net deck size: " + netClickedObjects.Count + " | " + Time.frameCount);
@@ -776,10 +786,10 @@ public class GameLogic : NetworkBehaviour
 	{
 		while (!dataAvailable.Value)
 		{
-			//Debug.Log($"No data yet | {Time.frameCount}");
+			Debug.Log($"No data yet");
 			yield return null;
 		}
-		//Debug.Log($"Data added | {Time.frameCount}");
+		Debug.Log($"Data added | {Time.frameCount}");
 	}
 
 	private void rotateIndexPointer()
@@ -817,9 +827,9 @@ public class GameLogic : NetworkBehaviour
 		{
 			netClickedObjects.Add(clickedObjects[i]);
 		}
-		//Debug.Log($"Data added | {Time.frameCount}");
-		NotifyClientRpc();
+		Debug.Log($"Data added | Round: {roundN}");
 		dataAvailable.Value = true;
+		NotifyClientRpc(playerId);
 	}
 
 	[ClientRpc]
@@ -852,7 +862,6 @@ public class GameLogic : NetworkBehaviour
 		netStage.Value = Stages.Null;
 		netRemotePlayerIndex = new NetworkVariable<int>();
 		Done = new NetworkVariable<int>(0);
-		DoneList = new bool[playerCount];
 	}
 
 	void Start()
