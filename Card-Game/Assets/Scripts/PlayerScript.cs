@@ -31,7 +31,7 @@ public class PlayerScript : MonoBehaviour
 	public Vector3 toTheRight;
 	public Vector3 right;
 	public Vector3 rotation;
-	public float debugDistanceOfCards;
+	public float xDistanceOfCards;
 	public Camera playerCamera; // Assign the player's camera in the Inspector
 	private CardData lastHoveredObject;
 	private Transform BehindCameraPos, AboveCardsCameraPos;
@@ -55,39 +55,40 @@ public class PlayerScript : MonoBehaviour
 
 	void ArrangeCardsAtHand()
 	{
-		if (cardsAtHand.Count == 0 || arranged) return;
+		int cardCount = cardsAtHand.Count;
+		if (cardCount == 0 || arranged) return;
 
-		cardsAtHand.Sort((x, y) => x.Rank - y.Rank);
+		cardsAtHand.Sort((x, y) => x.Rank.CompareTo(y.Rank));
 
 		Quaternion newRot = transform.rotation * Quaternion.Euler(0, 180f, 0);
 
-		m_ColliderSizeVector = transform.InverseTransformVector(cardsAtHand[0].m_Collider.bounds.size);
+		//m_ColliderSizeVector = transform.InverseTransformVector(cardsAtHand[0].m_Collider.bounds.size);
 		m_RendererSizeVector = cardsAtHand[0].m_MeshFilter.mesh.bounds.size;
-		float xDistanceOfCards = m_ColliderSizeVector.x;
 		float zDistanceOfCards = m_RendererSizeVector.z;
 		float xOffestMultiplier = 0.5f;
-		sideCardsNumber = cardsAtHand.Count / 2;
+		sideCardsNumber = cardCount / 2;
 
-		if ((cardsAtHand.Count - 1) * Mathf.Abs(xDistanceOfCards) > handRightRadius * 2)
+		float tempxDistanceOfCards = xDistanceOfCards;
+		if ((cardCount - 1) * Mathf.Abs(xDistanceOfCards) > handRightRadius * 2)
 		{
-			xDistanceOfCards = handRightRadius * 2 / cardsAtHand.Count;
+			tempxDistanceOfCards = handRightRadius * 2 / (cardCount - 1);
 		}
-		debugDistanceOfCards = xDistanceOfCards;
+		transform.GetChild(4).gameObject.GetComponent<TMPro.TextMeshPro>().text = tempxDistanceOfCards.ToString();
 
-		if (cardsAtHand.Count % 2 != 0) //Odd number of cards
+		if (cardCount % 2 != 0) //Odd number of cards
 		{
 			MoveCard(cardsAtHand[sideCardsNumber], transform.position + transform.forward * (handForwardRadius - zDistanceOfCards * 3 * sideCardsNumber), newRot);
-			if (cardsAtHand.Count == 1) return;
+			if (cardCount == 1) return;
 			xOffestMultiplier = 1;
 		}
 
-		toTheRight = transform.right * (xDistanceOfCards * xOffestMultiplier);
+		toTheRight = transform.right * (tempxDistanceOfCards * xOffestMultiplier);
 		MoveCard(cardsAtHand[sideCardsNumber - 1], transform.position - toTheRight + transform.forward * (handForwardRadius - (zDistanceOfCards * 3 * (sideCardsNumber - 1))), newRot);
-		MoveCard(cardsAtHand[cardsAtHand.Count - sideCardsNumber], transform.position + toTheRight + transform.forward * (handForwardRadius - (zDistanceOfCards * 3 * (cardsAtHand.Count - sideCardsNumber))), newRot);
+		MoveCard(cardsAtHand[cardCount - sideCardsNumber], transform.position + toTheRight + transform.forward * (handForwardRadius - (zDistanceOfCards * 3 * (cardCount - sideCardsNumber))), newRot);
 		int iterationCounter = 1;
-		for (int i = sideCardsNumber - 2, j = cardsAtHand.Count - sideCardsNumber + 1; i >= 0 && j < cardsAtHand.Count; i--, j++)
+		for (int i = sideCardsNumber - 2, j = cardCount - sideCardsNumber + 1; i >= 0 && j < cardCount; i--, j++)
 		{
-			toTheRight = transform.right * (xDistanceOfCards * iterationCounter + xDistanceOfCards * xOffestMultiplier);
+			toTheRight = transform.right * (tempxDistanceOfCards * (iterationCounter + xOffestMultiplier));
 			MoveCard(cardsAtHand[i], transform.position - toTheRight + transform.forward * (handForwardRadius - zDistanceOfCards * 3 * i), newRot);
 			MoveCard(cardsAtHand[j], transform.position + toTheRight + transform.forward * (handForwardRadius - zDistanceOfCards * 3 * j), newRot);
 			iterationCounter++;
@@ -474,7 +475,7 @@ public class PlayerScript : MonoBehaviour
 
 					finishedChoosing = false;
 					finishedPlaying = true;
-					Debug.Log(finishedPlaying);
+					//Debug.Log(finishedPlaying);
 				}
 
 				Out = third3Cards.Count == 0 && cardsAtHand.Count == 0;

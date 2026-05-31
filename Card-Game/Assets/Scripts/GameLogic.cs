@@ -180,7 +180,7 @@ public class GameLogic : NetworkBehaviour
 		cardSpawnPos = transform.GetChild(0).transform.GetChild(52);
 		m_PhysicalDeck = transform.GetChild(0).gameObject;
 		playerIsOut = false;
-		Debug.Log($"DoneList = new bool[{playerCount}];");
+		//Debug.Log($"DoneList = new bool[{playerCount}];");
 		DoneList = new bool[playerCount];
 
 
@@ -195,12 +195,12 @@ public class GameLogic : NetworkBehaviour
 
 	private IEnumerator waitForSync(Stages next = Stages.Null)
 	{
-		Debug.Log($"Wait for sync [{DateTime.Now.ToString("HH:mm:ss.fff")}]");
+		//Debug.Log($"Wait for sync [{DateTime.Now.ToString("HH:mm:ss.fff")}]");
 		if (IsHost)
 		{
-			Debug.Log("I am the host");
-			Debug.Log("Done null: " + Done == null);
-			Debug.Log("m_Players null: " + m_Players == null);
+			//Debug.Log("I am the host");
+			//Debug.Log("Done null: " + Done == null);
+			//Debug.Log("m_Players null: " + m_Players == null);
 			DoneList[localIndex] = true;
 			//while (Done.Value != m_Players.Count - 1)
 			while (DoneList.Any(b => !b))
@@ -218,16 +218,16 @@ public class GameLogic : NetworkBehaviour
 		}
 		else
 		{
-			Debug.Log("[IN] Client finished");
+			//Debug.Log("[IN] Client finished");
 			isWaitingForServer = true;
 			eventDoneServerRpc(localIndex);
-			Debug.Log("[IN] Notified Server");
+			//Debug.Log("[IN] Notified Server");
 			while (isWaitingForServer)// || Done.Value != 0)
 			{
 				//Debug.Log("Waiting");
 				yield return null;
 			}
-			Debug.Log("[IN] Server responded");
+			//Debug.Log("[IN] Server responded");
 		}
 	}
 
@@ -236,7 +236,7 @@ public class GameLogic : NetworkBehaviour
 		if (IsHost)
 		{
 			//while (Done.Value != m_Players.Count - 1)
-			Debug.Log($"Wait for play sync [{DateTime.Now.ToString("HH:mm:ss.fff")}]");
+			//Debug.Log($"Wait for play sync [{DateTime.Now.ToString("HH:mm:ss.fff")}]");
 			DoneList[localIndex] = true;
 			while (DoneList.Any(b => !b))
 			{
@@ -337,7 +337,7 @@ public class GameLogic : NetworkBehaviour
 		for (int i = 0; i < playerCount; i++)
 		{
 			m_Players.Add(Instantiate<PlayerScript>(playerPrefab, transform));
-			Debug.Log("DoneList = false");
+			//Debug.Log("DoneList = false");
 			if (IsHost) DoneList[i] = false;
 		}
 		for (int i = 0; i < m_Players.Count; i++)
@@ -357,7 +357,7 @@ public class GameLogic : NetworkBehaviour
 	public void eventDoneServerRpc(int p_localIndex)
 	{
 		//Done.Value++;
-		Debug.Log($"Done client {p_localIndex} [{DateTime.Now.ToString("HH:mm:ss.fff")}]");
+		//Debug.Log($"Done client {p_localIndex} [{DateTime.Now.ToString("HH:mm:ss.fff")}]");
 		DoneList[p_localIndex] = true;
 		//if (localIndex >= 0) Debug.Log("Client index: " + localIndex);
 	}
@@ -622,18 +622,18 @@ public class GameLogic : NetworkBehaviour
 
 	private IEnumerator FollowDecisionsOfRemotePlayer()
 	{
-		Debug.Log($"Not playing | Round: {roundN}");
+		//Debug.Log($"Not playing | Round: {roundN}");
 
 		yield return StartCoroutine(waitForData());
 
-		Debug.Log("Data Available");
+		//Debug.Log("Data Available");
 
 		okButton.onClick.RemoveAllListeners();
 		m_Players[m_PlayerIndex].okButton = okButton;
 		m_Players[m_PlayerIndex].Play(false);
 		for (int i = 0; i < netClickedObjects.Count; i++)
 			m_Players[m_PlayerIndex].addClickedCard((CardIds)netClickedObjects[i]);
-		Debug.Log("Remote player net deck size: " + netClickedObjects.Count + " | " + Time.frameCount);
+		//Debug.Log("Remote player net deck size: " + netClickedObjects.Count + " | " + Time.frameCount);
 		m_Players[m_PlayerIndex].okButton.onClick.Invoke();
 		okButton.onClick.RemoveAllListeners();
 		m_Players[m_PlayerIndex].okButton = null;
@@ -641,7 +641,7 @@ public class GameLogic : NetworkBehaviour
 
 	private IEnumerator Play()
 	{
-		Debug.Log($"Playing | Round: {roundN}");
+		//Debug.Log($"Playing | Round: {roundN}");
 
 		okButton.onClick.RemoveAllListeners();
 		m_Players[localIndex].okButton = okButton;
@@ -771,6 +771,13 @@ public class GameLogic : NetworkBehaviour
 			PowerOnTop = firstCard.power;
 		playedPos.position += new Vector3(0, m_cardThickness, 0);
 
+		Vector3 m_ColliderSizeVector = firstCard.m_Collider.bounds.size;
+		Debug.Log($"{m_ColliderSizeVector}");
+		for (int i = 0; i < playerCount; ++i)
+		{
+			m_Players[i].xDistanceOfCards = m_ColliderSizeVector.x;
+		}
+
 		countRankOnTopText.SetText(countRankOnTop.ToString());
 		RankOnTopText.SetText(RankOnTop.ToString());
 		PowerOnTopText.SetText(PowerOnTop.ToString());
@@ -786,10 +793,10 @@ public class GameLogic : NetworkBehaviour
 	{
 		while (!dataAvailable.Value)
 		{
-			Debug.Log($"No data yet");
+			//Debug.Log($"No data yet");
 			yield return null;
 		}
-		Debug.Log($"Data added | {Time.frameCount}");
+		//Debug.Log($"Data added | {Time.frameCount}");
 	}
 
 	private void rotateIndexPointer()
@@ -827,7 +834,7 @@ public class GameLogic : NetworkBehaviour
 		{
 			netClickedObjects.Add(clickedObjects[i]);
 		}
-		Debug.Log($"Data added | Round: {roundN}");
+		//Debug.Log($"Data added | Round: {roundN}");
 		dataAvailable.Value = true;
 		NotifyClientRpc(playerId);
 	}
