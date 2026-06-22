@@ -33,14 +33,17 @@ public class PlayerScript : MonoBehaviour
 	public float xDistanceOfCards;
 	public Camera playerCamera; // Assign the player's camera in the Inspector
 	private CardData lastHoveredObject;
-	private Transform BehindCameraPos, AboveCardsCameraPos, CenterCameraTrans;
+	public Transform BehindCameraPos, AboveCardsCameraPos, CenterCameraTrans;
 	private bool CenteringCamera;
 	private Vector3 prevPos;
 	private Quaternion prevRot;
 	private bool movingCamera;
-	[SerializeField] private float CameraCenterSpeed;
-	[SerializeField] private float CameraRotationSpeed;
+	public bool enableCameraCentering = true;
+	public float CameraCenterSpeed;
+	public float CameraRotationSpeed;
 	public enum phases {Null, choosing, playing, last3};
+	public bool exchanges = false;
+	public Transform otherPlayerCards;
 	public phases m_Phase = phases.Null;
 	public Button okButton;
 	public bool deckFinished = false;
@@ -187,7 +190,11 @@ public class PlayerScript : MonoBehaviour
 
 			OnHoverExit(clickedObjects[0]);
 			OnHoverExit(clickedObjects[1]);
+			clickedObjects[0].m_Renderer.material.color = Color.white;
+			clickedObjects[1].m_Renderer.material.color = Color.white;
 			SetCamera();
+			prevPos = BehindCameraPos.position;
+			prevRot = BehindCameraPos.rotation;
 			m_Phase = phases.Null;
 			finishedChoosing = true;
 		});
@@ -398,7 +405,7 @@ public class PlayerScript : MonoBehaviour
 
 		if (playerCamera != null)
 		{
-			if (Input.GetMouseButtonDown(1))
+			if (Input.GetMouseButtonDown(1) && enableCameraCentering)
 			{
 				Debug.Log("Right click");
 				LookAtCenter();
@@ -406,8 +413,8 @@ public class PlayerScript : MonoBehaviour
 
 			if (movingCamera)
 			{
-				Vector3 targetPos = CenteringCamera ? CenterCameraTrans.position : prevPos;
-				Quaternion targetRot = CenteringCamera ? CenterCameraTrans.rotation : prevRot;
+				Vector3 targetPos = CenteringCamera ? (exchanges ? otherPlayerCards.position : CenterCameraTrans.position) : prevPos;
+				Quaternion targetRot = CenteringCamera ? (exchanges ? otherPlayerCards.rotation : CenterCameraTrans.rotation) : prevRot;
 				playerCamera.transform.position = Vector3.SmoothDamp(playerCamera.transform.position, targetPos, ref velocity, CameraCenterSpeed);
 				playerCamera.transform.rotation = Quaternion.RotateTowards(playerCamera.transform.rotation, targetRot, CameraRotationSpeed * Time.deltaTime);
 				if (Mathf.Abs(Vector3.Distance(targetPos, playerCamera.transform.position)) <= 0.01)

@@ -10,7 +10,7 @@ using UnityEngine.UI;
 
 public class GameLogic : NetworkBehaviour
 {
-	bool myDebug = false;
+	bool myDebug = true;
 
 
 	public CardData cardPrefab;
@@ -64,6 +64,8 @@ public class GameLogic : NetworkBehaviour
 	public GameObject indexPointer;
 	[SerializeField] private GameObject GameUI, GameoverUI;
 	GameObject panel;
+
+	[SerializeField] float MovementCameraSpeed = 0.5f, RotationCameraSpeed = 19, exchangeCardsRotationSpeed = 96;
 
 	CardData PrepareCard(CardIds cardId)
 	{
@@ -168,9 +170,7 @@ public class GameLogic : NetworkBehaviour
 		}
 
 		m_PlayedCards.AddRange(player.clickedObjects);
-		RankOnTopText.SetText(RankOnTop.ToString());
-		countRankOnTopText.SetText(countRankOnTop.ToString());
-		PowerOnTopText.SetText(PowerOnTop.ToString());
+		setUIText();
 
 		//Debug.Log($"Clicked cleared {Time.frameCount}");
 		player.clickedObjects.Clear();
@@ -407,9 +407,12 @@ public class GameLogic : NetworkBehaviour
 
 		if (winnerIndex != -1)
 		{
+			m_Players[localIndex].CameraRotationSpeed = exchangeCardsRotationSpeed;
 			yield return StartCoroutine(waitForSync(Stages.exchanging));
+			m_Players[localIndex].m_Phase = PlayerScript.phases.playing;
 			yield return StartCoroutine(exchnageCards());
 		}
+		m_Players[localIndex].CameraRotationSpeed = RotationCameraSpeed;
 
 		yield return StartCoroutine(waitForSync(Stages.choosing));
 		if (IsHost && winnerIndex != -1) 
@@ -421,6 +424,7 @@ public class GameLogic : NetworkBehaviour
 		while (!m_Players[localIndex].finishedChoosing)
 			yield return null;
 		m_Players[localIndex].okButton = null;
+		m_Players[localIndex].m_Phase = PlayerScript.phases.playing;
 
 		yield return StartCoroutine(waitForSync(Stages.givingCards));
 
@@ -501,17 +505,25 @@ public class GameLogic : NetworkBehaviour
 		if (localIndex == winnerIndex)
 		{
 			Debug.Log("I am the winner");
+			RotationCameraSpeed = 96;
 			List<int> selectedCards = new List<int>();
+			m_Players[localIndex].exchanges = true;
+			m_Players[localIndex].otherPlayerCards = m_Players[loserIndex].AboveCardsCameraPos;
 			m_Players[localIndex].chooseCardsToExchange(m_Players[localIndex]);
 			while (!m_Players[localIndex].finishedChoosing)
 				yield return null;
 			okButton.onClick.RemoveAllListeners();
 			selectedCards.AddRange(m_Players[localIndex].ClickedObjectsIdsAsInts());
+			m_Players[localIndex].enableCameraCentering = false;
 			m_Players[localIndex].chooseCardsToExchange(m_Players[loserIndex]);
 			while (!m_Players[localIndex].finishedChoosing)
 				yield return null;
 			okButton.onClick.RemoveAllListeners();
 			selectedCards.AddRange(m_Players[localIndex].ClickedObjectsIdsAsInts());
+			m_Players[localIndex].exchanges = false;
+			m_Players[localIndex].enableCameraCentering = true;
+			m_Players[localIndex].clickedObjects.Clear();
+			RotationCameraSpeed = 19;
 
 			if (!IsHost)
 			{
@@ -759,9 +771,26 @@ public class GameLogic : NetworkBehaviour
 
 	private void setUIText()
 	{
-		RankOnTopText.SetText(RankOnTop.ToString());
+		RankOnTopText.SetText(ShowRank(RankOnTop));
 		PowerOnTopText.SetText(PowerOnTop.ToString());
 		countRankOnTopText.SetText(countRankOnTop.ToString());
+	}
+
+	private string ShowRank(int rank)
+	{
+		switch (rank)
+		{
+			case 1:
+				return "A";
+			case 11:
+				return "J";
+			case 12:
+				return "Q";
+			case 13:
+				return "K";
+			default:
+				return rank.ToString();
+		}
 	}
 
 	private IEnumerator informOfChosenCards()
@@ -855,11 +884,10 @@ public class GameLogic : NetworkBehaviour
 		for (int i = 0; i < playerCount; ++i)
 		{
 			m_Players[i].xDistanceOfCards = m_ColliderSizeVector.x;
+			m_Players[i].CameraCenterSpeed = MovementCameraSpeed;
 		}
 
-		countRankOnTopText.SetText(countRankOnTop.ToString());
-		RankOnTopText.SetText(RankOnTop.ToString());
-		PowerOnTopText.SetText(PowerOnTop.ToString());
+		setUIText();
 		m_Players[localIndex].RankOnTop = RankOnTop;
 		m_Players[localIndex].PowerOnTop = PowerOnTop;
 		m_Players[localIndex].countRankOnTop = countRankOnTop;
