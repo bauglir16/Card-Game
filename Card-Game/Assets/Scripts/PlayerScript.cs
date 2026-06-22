@@ -19,7 +19,6 @@ public class PlayerScript : MonoBehaviour
 	public Transform downCardsObject;
 	public List<CardData> clickedObjects = new List<CardData>();
 	public List<CardData> choosingList = new List<CardData>();
-	Vector3 m_ColliderSizeVector;
 	public Vector3 m_RendererSizeVector;
 	public float handRightRadius;
 	public float handForwardRadius = 1.552f;
@@ -34,7 +33,13 @@ public class PlayerScript : MonoBehaviour
 	public float xDistanceOfCards;
 	public Camera playerCamera; // Assign the player's camera in the Inspector
 	private CardData lastHoveredObject;
-	private Transform BehindCameraPos, AboveCardsCameraPos;
+	private Transform BehindCameraPos, AboveCardsCameraPos, CenterCameraTrans;
+	private bool CenteringCamera;
+	private Vector3 prevPos;
+	private Quaternion prevRot;
+	private bool movingCamera;
+	[SerializeField] private float CameraCenterSpeed;
+	[SerializeField] private float CameraRotationSpeed;
 	public enum phases {Null, choosing, playing, last3};
 	public phases m_Phase = phases.Null;
 	public Button okButton;
@@ -48,8 +53,10 @@ public class PlayerScript : MonoBehaviour
 	bool arranged = false;
 	public int id;
 	private int cardLimit;
+	private String Name;
 
 	[SerializeField] TextMesh text;
+	private Vector3 velocity;
 
 	public bool finishedChoosing { get; set; }
 
@@ -73,7 +80,7 @@ public class PlayerScript : MonoBehaviour
 		{
 			tempxDistanceOfCards = handRightRadius * 2 / (cardCount - 1);
 		}
-		transform.GetChild(4).gameObject.GetComponent<TMPro.TextMeshPro>().text = tempxDistanceOfCards.ToString();
+		//transform.GetChild(4).gameObject.GetComponent<TMPro.TextMeshPro>().text = tempxDistanceOfCards.ToString();
 
 		if (cardCount % 2 != 0) //Odd number of cards
 		{
@@ -261,6 +268,9 @@ public class PlayerScript : MonoBehaviour
 
 		BehindCameraPos = transform.GetChild(0);
 		AboveCardsCameraPos = downCardsObject.GetChild(downCardsObject.childCount - 1);
+		CenterCameraTrans = transform.GetChild(transform.childCount - 1);
+		CenteringCamera = false;
+		movingCamera = false;
 		transform.GetChild(3).gameObject.GetComponent<TMPro.TextMeshPro>().text = id.ToString();
 
 		RankOnTop = 0;
@@ -386,7 +396,52 @@ public class PlayerScript : MonoBehaviour
 				break;
 		}
 
-		
+		if (playerCamera != null)
+		{
+			if (Input.GetMouseButtonDown(1))
+			{
+				Debug.Log("Right click");
+				LookAtCenter();
+			}
+
+			if (movingCamera)
+			{
+				Vector3 targetPos = CenteringCamera ? CenterCameraTrans.position : prevPos;
+				Quaternion targetRot = CenteringCamera ? CenterCameraTrans.rotation : prevRot;
+				playerCamera.transform.position = Vector3.SmoothDamp(playerCamera.transform.position, targetPos, ref velocity, CameraCenterSpeed);
+				playerCamera.transform.rotation = Quaternion.RotateTowards(playerCamera.transform.rotation, targetRot, CameraRotationSpeed * Time.deltaTime);
+				if (Mathf.Abs(Vector3.Distance(targetPos, playerCamera.transform.position)) <= 0.01)
+				{
+					movingCamera = false;
+					playerCamera.transform.position = targetPos;
+					playerCamera.transform.rotation = targetRot;
+				}
+			}
+		}
+	}
+
+	void LookAtCenter()
+	{
+		movingCamera = true;
+		if (!CenteringCamera)
+		{
+			Transform prev = m_Phase == phases.choosing ? AboveCardsCameraPos : BehindCameraPos;
+			prevPos = prev.position;
+			prevRot = prev.rotation;
+			Debug.Log($"Prev rot: {prevRot}");
+			//center
+			CenteringCamera = true;
+			if (okButton != null)
+			okButton.gameObject.SetActive(false);
+		}
+		else
+		{
+			//playerCamera.transform.position = prevPos;
+			//playerCamera.transform.rotation = prevRot;
+			CenteringCamera=false;
+			if (okButton != null) 
+				okButton.gameObject.SetActive(true);
+		}
 	}
 
 	private void OnDrawGizmos()
