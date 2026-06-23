@@ -10,7 +10,7 @@ using UnityEngine.UI;
 
 public class GameLogic : NetworkBehaviour
 {
-	bool myDebug = true;
+	bool myDebug = false;
 
 
 	public CardData cardPrefab;
@@ -71,7 +71,9 @@ public class GameLogic : NetworkBehaviour
 	{
 		CardData card = Instantiate<CardData>(cardPrefab, cardSpawnPos.position, cardSpawnPos.rotation, transform);
 		card.Set(cardId);
-		transform.GetChild(0).transform.position -= new Vector3(0, m_cardThickness, 0);
+		DestroyImmediate(m_PhysicalDeck.transform.GetChild(0).gameObject);
+		Debug.Log("Card Destroyed");
+		//transform.GetChild(0).transform.position -= new Vector3(0, m_cardThickness, 0);
 		return card;
 	}
 
@@ -97,14 +99,15 @@ public class GameLogic : NetworkBehaviour
 				break;
 		}
 
-		m_PhysicalDeck.transform.localPosition -= new Vector3(0, m_cardThickness * 3, 0);
+		//for (int i = 0; i < 3; i++)
+		//	Destroy(m_PhysicalDeck.transform.GetChild(0).gameObject);
 	}
 
 	void GiveCard(CardIds card, PlayerScript player)
 	{
 		CardData newCard = PrepareCard(card);
 		player.GiveCardAtHand(newCard);
-		m_PhysicalDeck.transform.position -= new Vector3(0, m_cardThickness, 0);
+		//Destroy(m_PhysicalDeck.transform.GetChild(0).gameObject);
 
 		if (m_ShuffledDeck.Count == 0 && !m_Players[0].deckFinished)
 		{
@@ -184,6 +187,7 @@ public class GameLogic : NetworkBehaviour
 		//Debug.Log($"Local index: {localIndex}");
 		cardSpawnPos = transform.GetChild(0).transform.GetChild(52);
 		m_PhysicalDeck = transform.GetChild(0).gameObject;
+		//physicalDeckHeight = m_PhysicalDeck.GetComponent<MeshFilter>().mesh.bounds.size.y;
 		playerIsOut = false;
 		//Debug.Log($"DoneList = new bool[{playerCount}];");
 		DoneList = new bool[playerCount];
@@ -331,7 +335,9 @@ public class GameLogic : NetworkBehaviour
 		m_cardThickness = m_PhysicalDeck.transform.localPosition.y;
 		m_cardThickness -= 1.255998f;
 		m_cardThickness /= 52;
-		m_PhysicalDeck.transform.position += new Vector3(0, m_cardThickness * 3, 0); m_PlayerIndex = 0;
+		//for (int i = 0; i < 3; ++i)
+		//	DestroyImmediate(m_PhysicalDeck.transform.GetChild(0).gameObject);
+		m_PlayerIndex = 0;
 		playedPos = transform.GetChild(1);
 		initialPlayedPos = playedPos.position;
 	}
